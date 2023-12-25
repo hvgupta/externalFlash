@@ -23,7 +23,7 @@
 #define APPCONFIG_H
 #endif
 
-
+#include "config.h"
 
 //1 for use, 0 for not use
 /*====================
@@ -67,6 +67,11 @@
    POWER CONTROLLER
  *====================*/
 #define USE_POWER_CONTROLLER 0
+
+/*====================
+   SUPER CAPACITOR
+ =====================*/
+#define USE_SUPER_CAPACITOR 0
 
 /*====================
    PID CONFIG
