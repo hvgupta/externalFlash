@@ -18,12 +18,12 @@ StaticTask_t xBlinkTaskTCB;
 
 void blink(void *pvPara)
 {
-    HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET);
+    // HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET);
 
     while (true)
     {
-        HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
-        HAL_GPIO_TogglePin(LASER_GPIO_Port, LASER_Pin);
+        // HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
+        // HAL_GPIO_TogglePin(LASER_GPIO_Port, LASER_Pin);
         vTaskDelay(500);
     }
 }

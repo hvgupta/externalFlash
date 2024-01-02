@@ -103,7 +103,7 @@
 /*====================
    DM4310 MOTOR CONFIG
  *====================*/
- #define USE_DM4310 1
+ #define USE_DM4310 0
  #if USE_DM4310
 /*4310 id setting, must be the same as configrator*/
     #define DM4310_ID_CUSTOM 0
@@ -127,7 +127,7 @@
 /*====================
    DR16 CONFIG
  *====================*/
-#define USE_DR16 1
+#define USE_DR16 0
 #if USE_DR16
     #define USE_DR16_DMA 1
     #define USE_DR16_INTERRUPT 0
@@ -144,11 +144,14 @@
 /*====================
    FDCAN CONFIG
  *====================*/
+#define USE_CAN_MANAGER 0
+#ifdef USE_CAN_MANAGER
 #define CAN_CUSTOM 0
 #if CAN_CUSTOM
     #define CAN_NUM 1
     #define CAN_FILTER_NUM 8
     #define CAN_FILTER_SLAVE_START 14
+#endif
 #endif
 
 /*====================
