@@ -66,12 +66,12 @@
 /*====================
    POWER CONTROLLER
  *====================*/
-#define USE_POWER_CONTROLLER 0
+#define USE_POWER_CONTROLLER 1
 
 /*====================
    SUPER CAPACITOR
  =====================*/
-#define USE_SUPER_CAPACITOR 0
+#define USE_SUPER_CAPACITOR 1
 
 /*====================
    PID CONFIG
@@ -103,7 +103,7 @@
 /*====================
    DM4310 MOTOR CONFIG
  *====================*/
- #define USE_DM4310 0
+ #define USE_DM4310 1
  #if USE_DM4310
 /*4310 id setting, must be the same as configrator*/
     #define DM4310_ID_CUSTOM 0
@@ -127,7 +127,7 @@
 /*====================
    DR16 CONFIG
  *====================*/
-#define USE_DR16 0
+#define USE_DR16 1
 #if USE_DR16
     #define USE_DR16_DMA 1
     #define USE_DR16_INTERRUPT 0
@@ -144,14 +144,11 @@
 /*====================
    FDCAN CONFIG
  *====================*/
-#define USE_CAN_MANAGER 0
-#ifdef USE_CAN_MANAGER
 #define CAN_CUSTOM 0
 #if CAN_CUSTOM
     #define CAN_NUM 1
     #define CAN_FILTER_NUM 8
     #define CAN_FILTER_SLAVE_START 14
-#endif
 #endif
 
 /*====================
@@ -187,7 +184,7 @@
 /*====================
    REFEREE SYSTEM COMM
  *====================*/
-#define USE_REFEREE_SYSTEM_COMM 0
+#define USE_REFEREE_SYSTEM_COMM 1
 #if USE_REFEREE_SYSTEM_COMM
     #define REFEREE_BUFFER_SIZE 150
     #define REFEREE_RX_LIST_SIZE 64
@@ -198,12 +195,12 @@
 /*====================
    ROS COMM CONFIG
  *====================*/
-#define USE_ROS_COMM 0
+#define USE_ROS_COMM 1
 #if USE_ROS_COMM
-#define ROS_COMM_UART huart2
-#define ROS_PROTOCOL_CUSTOM 0
+#define ROS_COMM_UART huart5
+#define ROS_PROTOCOL_CUSTOM 1
 #if ROS_PROTOCOL_CUSTOM
-    #define ROS_BUF_SIZE 32
+    #define ROS_BUF_SIZE 60
     #define ROS_TX_QUEUE_LENGTH 16
     #define ROS_TX_TIMEOUT 10
     #define ROS_RX_TIMEOUT 50
