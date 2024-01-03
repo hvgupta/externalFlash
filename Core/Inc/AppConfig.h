@@ -30,7 +30,7 @@
    DEBUG CONFIG
  *====================*/
 /*if use debug, some debug watch variables could be seen*/
-#define USE_DEBUG 1
+#define USE_DEBUG 0
     
 
 /*====================
@@ -40,7 +40,7 @@
 /*Config which IMU you use BEGIN*/
 #define USE_ADIS16470 0
 #define USE_BMI088 0
-#define USE_ICM42688 1
+#define USE_ICM42688 0
 /*Config which IMU you use END*/
 
 #if USE_ADIS16470
@@ -66,12 +66,12 @@
 /*====================
    POWER CONTROLLER
  *====================*/
-#define USE_POWER_CONTROLLER 1
+#define USE_POWER_CONTROLLER 0
 
 /*====================
    SUPER CAPACITOR
  =====================*/
-#define USE_SUPER_CAPACITOR 1
+#define USE_SUPER_CAPACITOR 0
 
 /*====================
    PID CONFIG
@@ -103,7 +103,7 @@
 /*====================
    DM4310 MOTOR CONFIG
  *====================*/
- #define USE_DM4310 1
+ #define USE_DM4310 0
  #if USE_DM4310
 /*4310 id setting, must be the same as configrator*/
     #define DM4310_ID_CUSTOM 0
@@ -127,7 +127,7 @@
 /*====================
    DR16 CONFIG
  *====================*/
-#define USE_DR16 1
+#define USE_DR16 0
 #if USE_DR16
     #define USE_DR16_DMA 1
     #define USE_DR16_INTERRUPT 0
@@ -184,7 +184,7 @@
 /*====================
    REFEREE SYSTEM COMM
  *====================*/
-#define USE_REFEREE_SYSTEM_COMM 1
+#define USE_REFEREE_SYSTEM_COMM 0
 #if USE_REFEREE_SYSTEM_COMM
     #define REFEREE_BUFFER_SIZE 150
     #define REFEREE_RX_LIST_SIZE 64
@@ -195,7 +195,7 @@
 /*====================
    ROS COMM CONFIG
  *====================*/
-#define USE_ROS_COMM 1
+#define USE_ROS_COMM 0
 #if USE_ROS_COMM
 #define ROS_COMM_UART huart5
 #define ROS_PROTOCOL_CUSTOM 1

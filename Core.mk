@@ -99,11 +99,14 @@ CPPFLAGS += -fno-threadsafe-statics					# Disable thread safe statics
 # LDFLAGS
 #######################################
 # link script
-LDSCRIPT = STM32F407VGTx_FLASH.ld
+# LDSCRIPT = STM32F407VGTx_FLASH.ld
+LDSCRIPT = STM32G473VETx_FLASH.ld
 
-# libraries
-LIBS = -lc -lm -lnosys -larm_cortexM4lf_math
-LIBDIR += -LMiddlewares/ST/ARM/DSP/Lib/
+# # libraries
+# LIBS = -lc -lm -lnosys -larm_cortexM4lf_math
+# LIBDIR += -LMiddlewares/ST/ARM/DSP/Lib/
+LIBDIR = 
+LIBS = -lc -lm -lnosys
 LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -static
 
 # Hide details (silent mode)
