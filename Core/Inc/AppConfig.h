@@ -94,10 +94,13 @@
 /*====================
    DJI MOTOR CONFIG
  *====================*/
-#define USE_DJI_MOTOR 0
+#define USE_DJI_MOTOR 1
 #if USE_DJI_MOTOR
     #define USE_DJI_MOTOR_TYPE_A 1
     #define USE_DJI_MOTOR_TYPE_B 1
+    #define DJI_MOTOR_CAN1 0
+    #define DJI_MOTOR_CAN2 1
+    #define DJI_MOTOR_CAN3 1
 #endif
 
 /*====================
@@ -150,11 +153,11 @@
 /*====================
    FDCAN CONFIG
  *====================*/
-#define USE_CAN_MANAGER 0
+#define USE_CAN_MANAGER 1
 #ifdef USE_CAN_MANAGER
-#define CAN_CUSTOM 0
+#define CAN_CUSTOM 1
 #if CAN_CUSTOM
-    #define CAN_NUM 1
+    #define CAN_NUM 3
     #define CAN_FILTER_NUM 8
     #define CAN_FILTER_SLAVE_START 14
 #endif
