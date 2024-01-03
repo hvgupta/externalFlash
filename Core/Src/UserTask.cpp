@@ -29,7 +29,9 @@ void blink(void *pvPara)
 }
 
 using namespace Core::Drivers;
-DJIMotorTypeA testMotor(0x201, 2, 19, 1);
+DJIMotorTypeA testMotor1(0x201, 2, 19, 1);
+DJIMotorTypeA testMotor2(0x201, 1, 19, 1);
+DJIMotorTypeA testMotor3(0x201, 0, 19, 1);
 
 /**
  * @brief Create user tasks

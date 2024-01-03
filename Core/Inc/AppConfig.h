@@ -98,7 +98,7 @@
 #if USE_DJI_MOTOR
     #define USE_DJI_MOTOR_TYPE_A 1
     #define USE_DJI_MOTOR_TYPE_B 1
-    #define DJI_MOTOR_CAN1 0
+    #define DJI_MOTOR_CAN1 1
     #define DJI_MOTOR_CAN2 1
     #define DJI_MOTOR_CAN3 1
 #endif
@@ -183,7 +183,11 @@
 #if USE_SERIAL_INTERBOARD
     #define INTERBOARD_MASTER 0
     #define INTERBOARD_SLAVE 0
+    #if defined(STM32F407xx) 
     #define INTERBOARD_COMM_UART huart2
+    #elif defined(STM32G473xx)
+    #define INTERBOARD_COMM_UART huart4
+    #endif
     #define SERIAL_INTERBOARD_TASK_STACK_SIZE 256
     #define SERIAL_INTERBOARD_TX_BUFFER_SIZE 128
     #define SERIAL_INTERBOARD_RX_BUFFER_SIZE 256

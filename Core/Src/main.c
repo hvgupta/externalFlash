@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cordic.h"
 #include "dma.h"
 #include "fdcan.h"
 #include "i2c.h"
@@ -108,6 +109,7 @@ int main(void)
   MX_LPUART1_UART_Init();
   MX_SPI2_Init();
   MX_SPI4_Init();
+  MX_CORDIC_Init();
   /* USER CODE BEGIN 2 */
   extern void startRTOS(void);
   startRTOS();   
