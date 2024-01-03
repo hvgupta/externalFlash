@@ -436,16 +436,24 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     __HAL_RCC_USART1_CLK_ENABLE();
 
     __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
     /**USART1 GPIO Configuration
-    PC4     ------> USART1_TX
     PC5     ------> USART1_RX
+    PA9     ------> USART1_TX
     */
-    GPIO_InitStruct.Pin = UART1A_TX_Pin|UART1A_RX_Pin;
+    GPIO_InitStruct.Pin = UART1A_RX_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    HAL_GPIO_Init(UART1A_RX_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = UART1A_TX_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
+    HAL_GPIO_Init(UART1A_TX_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN USART1_MspInit 1 */
 
@@ -470,18 +478,26 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     __HAL_RCC_USART2_CLK_ENABLE();
 
     __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
     /**USART2 GPIO Configuration
-    PA0     ------> USART2_CTS
     PA1     ------> USART2_RTS
     PA2     ------> USART2_TX
     PA3     ------> USART2_RX
+    PD3     ------> USART2_CTS
     */
-    GPIO_InitStruct.Pin = UART2A_CTS_Pin|UART2A_RTS_Pin|UART2A_TX_Pin|UART2A_RX_Pin;
+    GPIO_InitStruct.Pin = UART2A_RTS_Pin|UART2A_TX_Pin|UART2A_RX_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = UART2A_CTS_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+    HAL_GPIO_Init(UART2A_CTS_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN USART2_MspInit 1 */
 
@@ -505,17 +521,25 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     /* USART3 clock enable */
     __HAL_RCC_USART3_CLK_ENABLE();
 
+    __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOD_CLK_ENABLE();
     /**USART3 GPIO Configuration
+    PB11     ------> USART3_RX
     PD8     ------> USART3_TX
-    PD9     ------> USART3_RX
     */
-    GPIO_InitStruct.Pin = UART3A_TX_Pin|UART3A_RX_Pin;
+    GPIO_InitStruct.Pin = UART3A_RX_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
-    HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+    HAL_GPIO_Init(UART3A_RX_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = UART3A_TX_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
+    HAL_GPIO_Init(UART3A_TX_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN USART3_MspInit 1 */
 
@@ -594,10 +618,12 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
     __HAL_RCC_USART1_CLK_DISABLE();
 
     /**USART1 GPIO Configuration
-    PC4     ------> USART1_TX
     PC5     ------> USART1_RX
+    PA9     ------> USART1_TX
     */
-    HAL_GPIO_DeInit(GPIOC, UART1A_TX_Pin|UART1A_RX_Pin);
+    HAL_GPIO_DeInit(UART1A_RX_GPIO_Port, UART1A_RX_Pin);
+
+    HAL_GPIO_DeInit(UART1A_TX_GPIO_Port, UART1A_TX_Pin);
 
   /* USER CODE BEGIN USART1_MspDeInit 1 */
 
@@ -612,12 +638,14 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
     __HAL_RCC_USART2_CLK_DISABLE();
 
     /**USART2 GPIO Configuration
-    PA0     ------> USART2_CTS
     PA1     ------> USART2_RTS
     PA2     ------> USART2_TX
     PA3     ------> USART2_RX
+    PD3     ------> USART2_CTS
     */
-    HAL_GPIO_DeInit(GPIOA, UART2A_CTS_Pin|UART2A_RTS_Pin|UART2A_TX_Pin|UART2A_RX_Pin);
+    HAL_GPIO_DeInit(GPIOA, UART2A_RTS_Pin|UART2A_TX_Pin|UART2A_RX_Pin);
+
+    HAL_GPIO_DeInit(UART2A_CTS_GPIO_Port, UART2A_CTS_Pin);
 
   /* USER CODE BEGIN USART2_MspDeInit 1 */
 
@@ -632,10 +660,12 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
     __HAL_RCC_USART3_CLK_DISABLE();
 
     /**USART3 GPIO Configuration
+    PB11     ------> USART3_RX
     PD8     ------> USART3_TX
-    PD9     ------> USART3_RX
     */
-    HAL_GPIO_DeInit(GPIOD, UART3A_TX_Pin|UART3A_RX_Pin);
+    HAL_GPIO_DeInit(UART3A_RX_GPIO_Port, UART3A_RX_Pin);
+
+    HAL_GPIO_DeInit(UART3A_TX_GPIO_Port, UART3A_TX_Pin);
 
   /* USER CODE BEGIN USART3_MspDeInit 1 */
 

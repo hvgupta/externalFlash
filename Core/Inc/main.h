@@ -59,14 +59,8 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define LED_ACT_Pin GPIO_PIN_13
 #define LED_ACT_GPIO_Port GPIOC
-#define LASER_Pin GPIO_PIN_14
-#define LASER_GPIO_Port GPIOC
-#define BUTTON_Pin GPIO_PIN_15
-#define BUTTON_GPIO_Port GPIOC
 #define NRST_Pin GPIO_PIN_10
 #define NRST_GPIO_Port GPIOG
-#define UART2A_CTS_Pin GPIO_PIN_0
-#define UART2A_CTS_GPIO_Port GPIOA
 #define UART2A_RTS_Pin GPIO_PIN_1
 #define UART2A_RTS_GPIO_Port GPIOA
 #define UART2A_TX_Pin GPIO_PIN_2
@@ -75,8 +69,6 @@ void Error_Handler(void);
 #define UART2A_RX_GPIO_Port GPIOA
 #define CS_IMU_Pin GPIO_PIN_4
 #define CS_IMU_GPIO_Port GPIOA
-#define UART1A_TX_Pin GPIO_PIN_4
-#define UART1A_TX_GPIO_Port GPIOC
 #define UART1A_RX_Pin GPIO_PIN_5
 #define UART1A_RX_GPIO_Port GPIOC
 #define DRDY_MAG_Pin GPIO_PIN_0
@@ -91,10 +83,12 @@ void Error_Handler(void);
 #define UART3B_RX_GPIO_Port GPIOE
 #define UART3B_TX_Pin GPIO_PIN_10
 #define UART3B_TX_GPIO_Port GPIOB
+#define UART3A_RX_Pin GPIO_PIN_11
+#define UART3A_RX_GPIO_Port GPIOB
 #define UART3A_TX_Pin GPIO_PIN_8
 #define UART3A_TX_GPIO_Port GPIOD
-#define UART3A_RX_Pin GPIO_PIN_9
-#define UART3A_RX_GPIO_Port GPIOD
+#define UART1A_TX_Pin GPIO_PIN_9
+#define UART1A_TX_GPIO_Port GPIOA
 #define UART4_DE_Pin GPIO_PIN_15
 #define UART4_DE_GPIO_Port GPIOA
 #define UART4_TX_Pin GPIO_PIN_10
@@ -105,6 +99,8 @@ void Error_Handler(void);
 #define UART5_TX_GPIO_Port GPIOC
 #define UART5_RX_Pin GPIO_PIN_2
 #define UART5_RX_GPIO_Port GPIOD
+#define UART2A_CTS_Pin GPIO_PIN_3
+#define UART2A_CTS_GPIO_Port GPIOD
 #define UART2B_TX_Pin GPIO_PIN_5
 #define UART2B_TX_GPIO_Port GPIOD
 #define UART2B_RX_Pin GPIO_PIN_6
