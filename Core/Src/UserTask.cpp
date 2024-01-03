@@ -20,7 +20,8 @@ void blink(void *pvPara)
 {
     while (true)
     {
-        vTaskDelay(1);
+        HAL_GPIO_TogglePin(LED_ACT_GPIO_Port, LED_ACT_Pin);
+        vTaskDelay(500);
     }
 }
 
