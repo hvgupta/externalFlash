@@ -8,6 +8,7 @@
  * @copyright Copyright (c) 2022
  */
 
+#include "DR16.hpp"
 #include "FreeRTOS.h"
 #include "gpio.h"
 #include "main.h"
@@ -29,4 +30,9 @@ void blink(void *pvPara)
  * @brief Create user tasks
  */
 
-void startUserTasks() { xTaskCreateStatic(blink, "blink", configMINIMAL_STACK_SIZE, NULL, 0, uxBlinkTaskStack, &xBlinkTaskTCB); }
+void startUserTasks()
+{
+    using namespace Core::Drivers;
+    DR16::init();
+    xTaskCreateStatic(blink, "blink", configMINIMAL_STACK_SIZE, NULL, 0, uxBlinkTaskStack, &xBlinkTaskTCB);
+}

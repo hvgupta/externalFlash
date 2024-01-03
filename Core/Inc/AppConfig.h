@@ -127,12 +127,18 @@
 /*====================
    DR16 CONFIG
  *====================*/
-#define USE_DR16 0
+#define USE_DR16 1
 #if USE_DR16
     #define USE_DR16_DMA 1
     #define USE_DR16_INTERRUPT 0
 /*UART CONFIG*/
+    #if defined(STM32F407xx)
     #define DR16_UART huart4
+    #define USE_RX_INV 0
+    #elif defined(STM32G473xx)
+    #define DR16_UART huart3
+    #define USE_RX_INV 1
+    #endif
 
 /*DMA SECTION*/
 #define DR16_DMA_ATTRIBUTES_COSTUM 0
@@ -144,11 +150,14 @@
 /*====================
    FDCAN CONFIG
  *====================*/
+#define USE_CAN_MANAGER 0
+#ifdef USE_CAN_MANAGER
 #define CAN_CUSTOM 0
 #if CAN_CUSTOM
     #define CAN_NUM 1
     #define CAN_FILTER_NUM 8
     #define CAN_FILTER_SLAVE_START 14
+#endif
 #endif
 
 /*====================
