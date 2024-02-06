@@ -24,6 +24,7 @@
 #include "i2c.h"
 #include "usart.h"
 #include "spi.h"
+#include "tim.h"
 #include "usb.h"
 #include "gpio.h"
 
@@ -110,6 +111,7 @@ int main(void)
   MX_SPI2_Init();
   MX_SPI4_Init();
   MX_CORDIC_Init();
+  MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
   extern void startRTOS(void);
   startRTOS();   

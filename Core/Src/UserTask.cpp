@@ -28,21 +28,12 @@ void blink(void *pvPara)
     }
 }
 
-using namespace Core::Drivers;
-DJIMotorTypeA testMotor1(0x201, 2, 19, 1);
-DJIMotorTypeA testMotor2(0x201, 1, 19, 1);
-DJIMotorTypeA testMotor3(0x201, 0, 19, 1);
-
 /**
  * @brief Create user tasks
  */
 
 void startUserTasks()
 {
-    DR16::init();
-    CANManager::managers[1].init(&hfdcan2);
-    CANManager::managers[0].init(&hfdcan1);
-    CANManager::managers[2].init(&hfdcan3);
-    DJIMotor::init();
+
     xTaskCreateStatic(blink, "blink", configMINIMAL_STACK_SIZE, NULL, 0, uxBlinkTaskStack, &xBlinkTaskTCB);
 }

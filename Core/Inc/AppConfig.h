@@ -94,7 +94,7 @@
 /*====================
    DJI MOTOR CONFIG
  *====================*/
-#define USE_DJI_MOTOR 1
+#define USE_DJI_MOTOR 0
 #if USE_DJI_MOTOR
     #define USE_DJI_MOTOR_TYPE_A 1
     #define USE_DJI_MOTOR_TYPE_B 1
@@ -130,7 +130,7 @@
 /*====================
    DR16 CONFIG
  *====================*/
-#define USE_DR16 1
+#define USE_DR16 0
 #if USE_DR16
     #define USE_DR16_DMA 1
     #define USE_DR16_INTERRUPT 0
@@ -153,7 +153,7 @@
 /*====================
    FDCAN CONFIG
  *====================*/
-#define USE_CAN_MANAGER 1
+#define USE_CAN_MANAGER 0
 #ifdef USE_CAN_MANAGER
 #define CAN_CUSTOM 1
 #if CAN_CUSTOM
