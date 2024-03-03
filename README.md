@@ -1,5 +1,5 @@
-# RM2024-Template-F
+# RM2024-Template-G4
 
-The repository for development board F.
+The repository for development board G4.
 
 Provide basic led blink functions
