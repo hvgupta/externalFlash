@@ -88,6 +88,48 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
+    /* Write Flash OB (G4 series) */
+  FLASH_OBProgramInitTypeDef pOBInit;
+  HAL_FLASHEx_OBGetConfig(&pOBInit);
+  if (!((pOBInit.USERConfig & FLASH_OPTR_nSWBOOT0_Msk) == OB_BOOT0_FROM_OB &&
+        (pOBInit.USERConfig & FLASH_OPTR_nBOOT0_Msk) == OB_nBOOT0_SET &&
+        (pOBInit.USERConfig & FLASH_OPTR_NRST_MODE_Msk) == OB_NRST_MODE_GPIO &&
+        (pOBInit.USERConfig & FLASH_OPTR_BOR_LEV_Msk) == OB_BOR_LEVEL_4 &&
+        (pOBInit.USERConfig & FLASH_OPTR_nRST_STOP_Msk) == OB_STOP_RST &&
+        (pOBInit.USERConfig & FLASH_OPTR_nRST_STDBY_Msk) == OB_STANDBY_RST &&
+        (pOBInit.USERConfig & FLASH_OPTR_nRST_SHDW_Msk) == OB_SHUTDOWN_RST
+  )) {
+      __disable_irq();
+      HAL_FLASH_Unlock();
+      HAL_FLASH_OB_Unlock();
+
+      pOBInit.OptionType = OPTIONBYTE_USER;
+      pOBInit.USERType = 0;
+      pOBInit.USERConfig = 0;
+
+      pOBInit.USERType |= OB_USER_nSWBOOT0;
+      pOBInit.USERConfig |= OB_BOOT0_FROM_OB;
+      pOBInit.USERType |= OB_USER_nBOOT0;
+      pOBInit.USERConfig |= OB_nBOOT0_SET;
+      pOBInit.USERType |= OB_USER_NRST_MODE;
+      pOBInit.USERConfig |= OB_NRST_MODE_GPIO;
+      pOBInit.USERType |= OB_USER_BOR_LEV;
+      pOBInit.USERConfig |= OB_BOR_LEVEL_4;
+      pOBInit.USERType |= OB_USER_nRST_STOP;
+      pOBInit.USERConfig |= OB_STOP_RST;
+      pOBInit.USERType |= OB_USER_nRST_STDBY;
+      pOBInit.USERConfig |= OB_STANDBY_RST;
+      pOBInit.USERType |= OB_USER_nRST_SHDW;
+      pOBInit.USERConfig |= OB_SHUTDOWN_RST;
+      pOBInit.USERType |= OB_USER_IRHEN;
+      pOBInit.USERConfig |= OB_IRH_ENABLE;
+      HAL_FLASHEx_OBProgram(&pOBInit);
+      HAL_FLASH_OB_Launch();
+      HAL_FLASH_OB_Lock();
+      HAL_FLASH_Lock();
+      __enable_irq();
+
+  }
 
   /* USER CODE END SysInit */
 
