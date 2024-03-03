@@ -30,7 +30,7 @@
    DEBUG CONFIG
  *====================*/
 /*if use debug, some debug watch variables could be seen*/
-#define USE_DEBUG 1
+#define USE_DEBUG 0
     
 
 /*====================
@@ -40,7 +40,7 @@
 /*Config which IMU you use BEGIN*/
 #define USE_ADIS16470 0
 #define USE_BMI088 0
-#define USE_ICM42688 1
+#define USE_ICM42688 0
 /*Config which IMU you use END*/
 
 #if USE_ADIS16470
@@ -98,12 +98,15 @@
 #if USE_DJI_MOTOR
     #define USE_DJI_MOTOR_TYPE_A 1
     #define USE_DJI_MOTOR_TYPE_B 1
+    #define DJI_MOTOR_CAN1 1
+    #define DJI_MOTOR_CAN2 1
+    #define DJI_MOTOR_CAN3 1
 #endif
 
 /*====================
    DM4310 MOTOR CONFIG
  *====================*/
- #define USE_DM4310 1
+ #define USE_DM4310 0
  #if USE_DM4310
 /*4310 id setting, must be the same as configrator*/
     #define DM4310_ID_CUSTOM 0
@@ -127,12 +130,18 @@
 /*====================
    DR16 CONFIG
  *====================*/
-#define USE_DR16 1
+#define USE_DR16 0
 #if USE_DR16
     #define USE_DR16_DMA 1
     #define USE_DR16_INTERRUPT 0
 /*UART CONFIG*/
+    #if defined(STM32F407xx)
     #define DR16_UART huart4
+    #define USE_RX_INV 0
+    #elif defined(STM32G473xx)
+    #define DR16_UART huart3
+    #define USE_RX_INV 1
+    #endif
 
 /*DMA SECTION*/
 #define DR16_DMA_ATTRIBUTES_COSTUM 0
@@ -144,11 +153,14 @@
 /*====================
    FDCAN CONFIG
  *====================*/
-#define CAN_CUSTOM 0
+#define USE_CAN_MANAGER 0
+#ifdef USE_CAN_MANAGER
+#define CAN_CUSTOM 1
 #if CAN_CUSTOM
-    #define CAN_NUM 1
+    #define CAN_NUM 3
     #define CAN_FILTER_NUM 8
     #define CAN_FILTER_SLAVE_START 14
+#endif
 #endif
 
 /*====================
@@ -171,7 +183,11 @@
 #if USE_SERIAL_INTERBOARD
     #define INTERBOARD_MASTER 0
     #define INTERBOARD_SLAVE 0
+    #if defined(STM32F407xx) 
     #define INTERBOARD_COMM_UART huart2
+    #elif defined(STM32G473xx)
+    #define INTERBOARD_COMM_UART huart4
+    #endif
     #define SERIAL_INTERBOARD_TASK_STACK_SIZE 256
     #define SERIAL_INTERBOARD_TX_BUFFER_SIZE 128
     #define SERIAL_INTERBOARD_RX_BUFFER_SIZE 256
@@ -197,10 +213,10 @@
  *====================*/
 #define USE_ROS_COMM 0
 #if USE_ROS_COMM
-#define ROS_COMM_UART huart2
-#define ROS_PROTOCOL_CUSTOM 0
+#define ROS_COMM_UART huart5
+#define ROS_PROTOCOL_CUSTOM 1
 #if ROS_PROTOCOL_CUSTOM
-    #define ROS_BUF_SIZE 32
+    #define ROS_BUF_SIZE 60
     #define ROS_TX_QUEUE_LENGTH 16
     #define ROS_TX_TIMEOUT 10
     #define ROS_RX_TIMEOUT 50
