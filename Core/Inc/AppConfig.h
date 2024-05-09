@@ -23,7 +23,7 @@
 #define APPCONFIG_H
 #endif
 
-#include "config.h"
+#include "Config.h"
 
 
 //1 for use, 0 for not use
@@ -98,6 +98,7 @@
     #define USE_OMNI_CHASSIS 0
     #define USE_MECANUM_CHASSIS 0
     #define ANGULAR_TO_LINEAR_RATIO 1.0f
+    #define SLOWDOWN_INCREASE 1.0f
 #endif
 
 /*====================
@@ -164,7 +165,13 @@
 /*====================
    HT04 MOTOR CONFIG
  *====================*/
-#define USE_HT04_MOTOR 0
+#define USE_HT04 0
+
+
+/*====================
+    LKMF MOTOR CONFIG
+ *====================*/
+#define USE_LKMFMotor 0
 
 /*====================
    DMA SECTION CONFIG
