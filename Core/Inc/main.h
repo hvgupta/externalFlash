@@ -67,10 +67,6 @@ void Error_Handler(void);
 #define ADC_POWER_GPIO_Port GPIOC
 #define ADC_5V_Pin GPIO_PIN_1
 #define ADC_5V_GPIO_Port GPIOC
-#define BUTTON_Pin GPIO_PIN_2
-#define BUTTON_GPIO_Port GPIOC
-#define BUZZER_Pin GPIO_PIN_3
-#define BUZZER_GPIO_Port GPIOC
 #define IMU_HEAT_Pin GPIO_PIN_2
 #define IMU_HEAT_GPIO_Port GPIOF
 #define UART2A_TX_Pin GPIO_PIN_2

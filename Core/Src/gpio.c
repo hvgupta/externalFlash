@@ -62,8 +62,7 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(LED_ACT_GPIO_Port, LED_ACT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, LASER_Pin|ADC_POWER_Pin|ADC_5V_Pin|BUTTON_Pin
-                          |BUZZER_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, LASER_Pin|ADC_POWER_Pin|ADC_5V_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LIS3_CS_GPIO_Port, LIS3_CS_Pin, GPIO_PIN_RESET);
@@ -81,10 +80,8 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_ACT_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PCPin PCPin PCPin PCPin
-                           PCPin */
-  GPIO_InitStruct.Pin = LASER_Pin|ADC_POWER_Pin|ADC_5V_Pin|BUTTON_Pin
-                          |BUZZER_Pin;
+  /*Configure GPIO pins : PCPin PCPin PCPin */
+  GPIO_InitStruct.Pin = LASER_Pin|ADC_POWER_Pin|ADC_5V_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

@@ -21,6 +21,7 @@
 #include "cordic.h"
 #include "dma.h"
 #include "fdcan.h"
+#include "quadspi.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -69,6 +70,7 @@ void SystemClock_Config(void);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -146,6 +148,7 @@ int main(void)
   MX_TIM16_Init();
   MX_USART1_UART_Init();
   MX_TIM20_Init();
+  MX_QUADSPI1_Init();
   /* USER CODE BEGIN 2 */
   extern void startRTOS(void);
   startRTOS();   
