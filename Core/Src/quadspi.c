@@ -358,7 +358,7 @@ HAL_StatusTypeDef Command_Tx_4DataLine(uint16_t command, uint8_t *buffer, uint16
     return HAL_OK;
 }
 
-HAL_StatusTypeDef StatusReg_Tx(uint16_t command, uint16_t regAddr, uint8_t data)
+HAL_StatusTypeDef StatusReg_Tx(uint16_t command, uint16_t regAddr, uint8_t *data)
 {
     QSPI_CommandTypeDef sCommand = {0};
     sCommand.InstructionMode     = QSPI_INSTRUCTION_1_LINE;
@@ -380,7 +380,7 @@ HAL_StatusTypeDef StatusReg_Tx(uint16_t command, uint16_t regAddr, uint8_t data)
     {
         return HAL_ERROR;
     }
-    if (HAL_QSPI_Transmit_DMA(&hqspi1, &data) != HAL_OK)
+    if (HAL_QSPI_Transmit_DMA(&hqspi1, data) != HAL_OK)
     {
         return HAL_ERROR;
     }

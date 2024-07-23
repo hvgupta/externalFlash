@@ -89,8 +89,8 @@ class Manager
 
     Manager(uint16_t subsections = 1);
 
-    State WriteStatusReg(uint8_t data, RegisterAddress reg_addr);
-    State ReadStatusReg(uint8_t buffer, RegisterAddress reg_addr);
+    State WriteStatusReg(uint8_t *data, RegisterAddress reg_addr);
+    State ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr);
 
     State WriteMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t data[], uint32_t size); /*TO DO: requires replacement*/
     State WriteMemory(uint16_t blockNumber, uint8_t data[], uint32_t size);
@@ -98,14 +98,14 @@ class Manager
     State ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint32_t size);
 
     State EraseRange(uint32_t start_addr, uint32_t end_addr); /*TO DO: requires replacement*/
-    State EraseBlock(uint32_t block_addr);
+    State EraseBlock(uint32_t blockNUM);
     State EraseChip();
 
     State BB_LUT(uint8_t buffer[]);
 
     uint16_t getLast_ECC_page_failure();
 
-    bool AddressCheck(uint16_t block, uint16_t page, uint16_t startByte);
+    bool CheckAddress(uint16_t block, uint16_t page, uint16_t startByte);
 
    private:
     State status;  // the current state of the chip
@@ -119,6 +119,8 @@ class Manager
     uint32_t get_JEDECID();
 
     State BB_management(); /*#TO DO*/
+
+    State SetBuffer(bool state);
 };
 
 uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte);
