@@ -335,4 +335,6 @@
     #define BUZZER_TIM_CLOCK 168000000.0f
     #define BUZZER_QUEUE_LENGTH 20
 #endif
+
+#define USE_FLASH 1
 #endif // Content enable
