@@ -53,7 +53,7 @@ extern "C"
 
     HAL_StatusTypeDef Command_Tx_4DataLine(uint16_t command, uint8_t *buffer, uint16_t addr, uint16_t size);
 
-    HAL_StatusTypeDef StatusReg_Tx(uint16_t command, uint16_t regAddr, uint8_t *data);
+    HAL_StatusTypeDef StatusReg_Tx(uint16_t command, uint16_t regAddr, uint8_t data);
     HAL_StatusTypeDef StatusReg_Rx(uint16_t command, uint16_t regAddr, uint8_t *buffer);
     /* USER CODE END Prototypes */
 

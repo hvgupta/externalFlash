@@ -89,7 +89,7 @@ class Manager
 
     Manager(uint16_t subsections = 1);
 
-    State WriteStatusReg(uint8_t *data, RegisterAddress reg_addr);
+    State WriteStatusReg(uint8_t data, RegisterAddress reg_addr);
     State ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr);
 
     State WriteMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t data[], uint32_t size); /*TO DO: requires replacement*/
@@ -110,7 +110,7 @@ class Manager
    private:
     State status;  // the current state of the chip
 
-    const int subsections;           // divides up the 1024 blocks
+    const int subsections;           // divides up the 1024 blocks, Right now does not do anything
     uint32_t nextAddr[BLOCK_COUNT];  // gives the next byte
 
     State WriteEnable();

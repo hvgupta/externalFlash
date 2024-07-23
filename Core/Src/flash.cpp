@@ -59,14 +59,14 @@ Manager::State Manager::SetBuffer(bool state)
     {
         regData &= 0xF7;
     }
-    if (WriteStatusReg(&regData, RegisterAddress::CONFIGURATION_REGISTER) != State::OK)
+    if (WriteStatusReg(regData, RegisterAddress::CONFIGURATION_REGISTER) != State::OK)
     {
         return State::CHIP_ERR;
     }
     return State::OK;
 }
 
-Manager::Manager(uint16_t subsections = 1) : subsections(subsections)
+Manager::Manager(uint16_t subsections) : subsections(subsections)
 {
     status = State::OK;
     PureCommand(OPCode::DEVICE_RESET);
@@ -75,13 +75,13 @@ Manager::Manager(uint16_t subsections = 1) : subsections(subsections)
         nextAddr[i] = 0;
     }
 
-    if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, RegisterAddress::PROTECT_REGISTER, 0x00) != HAL_OK)
+    if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, RegisterAddress::PROTECT_REGISTER, (uint8_t)0x00) != HAL_OK)
     {
         status = State::CHIP_ERR;
         return;
     }
 
-    if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, RegisterAddress::CONFIGURATION_REGISTER, 0x10) != HAL_OK)
+    if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, RegisterAddress::CONFIGURATION_REGISTER, (uint8_t)0x10) != HAL_OK)
     {
         status = State::CHIP_ERR;
         return;
@@ -93,7 +93,7 @@ Manager::Manager(uint16_t subsections = 1) : subsections(subsections)
     }
 }
 
-Manager::State Manager::WriteStatusReg(uint8_t *data, RegisterAddress reg_addr)
+Manager::State Manager::WriteStatusReg(uint8_t data, RegisterAddress reg_addr)
 {
     if (isBusy())
     {
@@ -176,6 +176,7 @@ Manager::State Manager::ReadMemory(uint16_t block, uint16_t page, uint16_t start
     {
         return State::PARAM_ERR;
     }
+    return State::OK;
 }
 
 Manager::State Manager::EraseBlock(uint32_t blockNUM)
