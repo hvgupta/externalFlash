@@ -21,10 +21,12 @@
 #define BLOCK_COUNT (MEM_FLASH_SIZE / MEM_BLOCK_SIZE)  // 1024 blocks
 
 /// Sector count
-#define PAGE_COUNT (MEM_FLASH_SIZE / MEM_BLOCK_SIZE)  // 65536 pages
+#define PAGE_COUNT (MEM_FLASH_SIZE / MEM_PAGE_SIZE)  // 65536 pages
 
 // the number of pages per block
 #define PAGE_PER_BLOCK (PAGE_COUNT / BLOCK_COUNT)  // 64 pages per block
+
+#define JEDECID_EXEPECTED 0xEFAA21
 
 namespace Core
 {
@@ -65,6 +67,13 @@ enum OPCode : uint8_t
     FAST_READ_DUAL_IO_4_BYTE = 0xBC
 };
 
+enum RegisterAddress : uint8_t
+{
+    PROTECT_REGISTER       = 0xA0,
+    CONFIGURATION_REGISTER = 0xB0,
+    STATUS_REGISTER        = 0xC0
+};
+
 class Manager
 {
    public:
@@ -77,24 +86,18 @@ class Manager
         SPI_ERR     = 4,  ///< SPI Bus err
         CHIP_IGNORE = 5,  ///< Chip ignore state
     };
-    enum RegisterAddress : uint8_t
-    {
-        PROTECT_REGISTER       = 0xA0,
-        CONFIGURATION_REGISTER = 0xB0,
-        STATUS_REGISTER        = 0xC0
-    };
 
-    Manager();
+    Manager(uint16_t subsections = 1);
 
     State WriteStatusReg(uint8_t data, RegisterAddress reg_addr);
     State ReadStatusReg(uint8_t buffer, RegisterAddress reg_addr);
 
-    State WriteMemory(uint32_t addr, uint8_t data[], uint32_t size);
-    State WriteMemory(uint8_t data[], uint32_t size);
+    State WriteMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t data[], uint32_t size); /*TO DO: requires replacement*/
+    State WriteMemory(uint16_t blockNumber, uint8_t data[], uint32_t size);
 
-    State ReadMemory(uint32_t addr, uint8_t *buffer, uint32_t size);
+    State ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint32_t size);
 
-    State EraseRange(uint32_t start_addr, uint32_t end_addr);
+    State EraseRange(uint32_t start_addr, uint32_t end_addr); /*TO DO: requires replacement*/
     State EraseBlock(uint32_t block_addr);
     State EraseChip();
 
@@ -102,18 +105,18 @@ class Manager
 
     uint16_t getLast_ECC_page_failure();
 
-   private:
-    State state;  // the current state of the chip
+    bool AddressCheck(uint16_t block, uint16_t page, uint16_t startByte);
 
-    uint16_t nextAddr[BLOCK_COUNT];  // gives the next byte
+   private:
+    State status;  // the current state of the chip
+
     const int subsections;           // divides up the 1024 blocks
+    uint32_t nextAddr[BLOCK_COUNT];  // gives the next byte
 
     State WriteEnable();
     State WriteDisable();
 
-    State EraseBlock(uint32_t block_addr);
-
-    State JEDECID(uint8_t *buffer);
+    uint32_t get_JEDECID();
 
     State BB_management(); /*#TO DO*/
 };

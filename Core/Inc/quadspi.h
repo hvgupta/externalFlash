@@ -46,15 +46,15 @@ extern "C"
 
     HAL_StatusTypeDef PureCommand(uint16_t command);
 
-    HAL_StatusTypeDef Command_Rx_1DataLine_addr(uint16_t command, uint16_t *buffer, uint16_t addr, uint16_t size);
-    HAL_StatusTypeDef Command_Rx_1DataLine(uint16_t command, uint16_t *buffer, uint16_t size, uint16_t dummyCycle);
+    HAL_StatusTypeDef Command_Rx_1DataLine_addr(uint16_t command, uint8_t *buffer, uint16_t addr, uint16_t size);
+    HAL_StatusTypeDef Command_Rx_1DataLine(uint16_t command, uint8_t *buffer, uint16_t size, uint16_t dummyCycle);
 
-    HAL_StatusTypeDef Command_Rx_2DataLine(uint16_t command, uint16_t *buffer, uint16_t addr, uint16_t size);
+    HAL_StatusTypeDef Command_Rx_2DataLine(uint16_t command, uint8_t *buffer, uint16_t addr, uint16_t size);
 
-    HAL_StatusTypeDef Command_Tx_4DataLine(uint16_t command, uint16_t *buffer, uint16_t addr, uint16_t size);
+    HAL_StatusTypeDef Command_Tx_4DataLine(uint16_t command, uint8_t *buffer, uint16_t addr, uint16_t size);
 
-    HAL_StatusTypeDef StatusReg_Tx(uint16_t command, uint16_t regAddr, uint16_t data);
-    HAL_StatusTypeDef StatusReg_Rx(uint16_t command, uint16_t regAddr, uint16_t *buffer);
+    HAL_StatusTypeDef StatusReg_Tx(uint16_t command, uint16_t regAddr, uint8_t data);
+    HAL_StatusTypeDef StatusReg_Rx(uint16_t command, uint16_t regAddr, uint8_t *buffer);
     /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
