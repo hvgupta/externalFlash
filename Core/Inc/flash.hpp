@@ -89,19 +89,19 @@ class Manager
 
     Manager(uint16_t subsections = 1);
 
-    State WriteStatusReg(uint8_t data, RegisterAddress reg_addr);
-    State ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr);
+    State WriteStatusReg(uint8_t data, RegisterAddress reg_addr);    // can be literal
+    State ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr);  // has to be a refernce
 
     State WriteMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *data, uint32_t size); /*TO DO: requires replacement*/
-    State WriteMemory(uint16_t blockNumber, uint8_t *data, uint32_t size);
+    State WriteMemory(uint16_t blockNumber, uint8_t *data, uint32_t size);                              // can be a string/array
 
-    State ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint32_t size);
+    State ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint32_t size);  // has to be an array
 
     State EraseRange(uint32_t start_addr, uint32_t end_addr); /*TO DO: requires replacement*/
     State EraseBlock(uint32_t blockNUM);
     State EraseChip();
 
-    State BB_LUT(uint8_t buffer[]);
+    State BB_LUT(uint8_t *buffer);
 
     uint16_t getLast_ECC_page_failure();
 

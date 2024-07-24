@@ -250,6 +250,20 @@ Manager::State Manager::EraseChip()
     return State::OK;
 }
 
+Manager::State Manager::BB_LUT(uint8_t *buffer)
+{
+    if (isBusy())
+    {
+        return State::BUSY;
+    }
+
+    if (Command_Rx_1DataLine(OPCode::READ_BBM_LUT, buffer, 20, 8) != HAL_OK)
+    {
+        return State::CHIP_ERR;
+    }
+
+    return State::OK;
+}
 }  // namespace W25N01
 }  // namespace Drivers
 }  // namespace Core
