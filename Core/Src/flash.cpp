@@ -6,7 +6,7 @@ namespace Drivers
 {
 namespace W25N01
 {
-uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte) { return ((block << 6 | page) << 16) | byte; }
+uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte) { return ((block << 6 | page) << 12) | byte; }
 
 bool isBusy()
 {
@@ -115,7 +115,7 @@ Manager::State Manager::ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr)
     return State::OK;
 }
 
-Manager::State Manager::WriteMemory(uint16_t blockNumber, uint8_t data[], uint32_t size)
+Manager::State Manager::WriteMemory(uint16_t blockNumber, uint8_t *data, uint32_t size)
 {
     if (isBusy())
     {
@@ -127,7 +127,7 @@ Manager::State Manager::WriteMemory(uint16_t blockNumber, uint8_t data[], uint32
         return State::PARAM_ERR;
     }
 
-    if (nextAddr[blockNumber] + size > MEM_PAGE_SIZE)
+    if (nextAddr[blockNumber] + size > 2048)
     {
         return State::PARAM_ERR;
     }
@@ -136,12 +136,12 @@ Manager::State Manager::WriteMemory(uint16_t blockNumber, uint8_t data[], uint32
     {
         return State::CHIP_ERR;
     }
-    uint32_t totalAddr = calcAddress(blockNumber, nextAddr[blockNumber], 0);
-    if (Command_Tx_4DataLine(OPCode::RANDOM_QUAD_LOAD_PROGRAM_DATA, data, totalAddr & 0xFF, size) != HAL_OK)
+    uint32_t totalAddr = calcAddress(blockNumber, nextAddr[blockNumber] & 0x3F000, nextAddr[blockNumber] & 0xFFF);
+    if (Command_Tx_4DataLine(OPCode::RANDOM_QUAD_LOAD_PROGRAM_DATA, data, totalAddr & 0xFFF, size) != HAL_OK)
     {
         return State::CHIP_ERR;
     }
-    if (BufferCommand(totalAddr >> 8, OPCode::PROGRAM_EXECUTE) != HAL_OK)
+    if (BufferCommand(totalAddr >> 12, OPCode::PROGRAM_EXECUTE) != HAL_OK)
     {
         return State::CHIP_ERR;
     }
@@ -175,6 +175,23 @@ Manager::State Manager::ReadMemory(uint16_t block, uint16_t page, uint16_t start
     if (!CheckAddress(block, page, startByte))
     {
         return State::PARAM_ERR;
+    }
+    if (isBusy())
+    {
+        return State::BUSY;
+    }
+    uint32_t address = calcAddress(block, page, startByte);
+    SetBuffer(true);
+    if (BufferCommand(address >> 12, OPCode::PAGE_DATA_READ) != HAL_OK)
+    {
+        return State::CHIP_ERR;
+    }
+    while (isBusy())
+        ;
+
+    if (Command_Rx_2DataLine(OPCode::FAST_READ_DUAL_OUTPUT, buffer, address & 0xFFF, size) != HAL_OK)
+    {
+        return State::CHIP_ERR;
     }
     return State::OK;
 }

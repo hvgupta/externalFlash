@@ -92,8 +92,8 @@ class Manager
     State WriteStatusReg(uint8_t data, RegisterAddress reg_addr);
     State ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr);
 
-    State WriteMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t data[], uint32_t size); /*TO DO: requires replacement*/
-    State WriteMemory(uint16_t blockNumber, uint8_t data[], uint32_t size);
+    State WriteMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *data, uint32_t size); /*TO DO: requires replacement*/
+    State WriteMemory(uint16_t blockNumber, uint8_t *data, uint32_t size);
 
     State ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint32_t size);
 

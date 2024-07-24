@@ -186,6 +186,7 @@ HAL_StatusTypeDef BufferCommand(uint16_t pageAddr, uint16_t command)
     sCommand.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
     sCommand.DataMode          = QSPI_DATA_NONE;
     sCommand.DummyCycles       = 0;
+    sCommand.NbData            = 0;
 
     sCommand.DdrMode          = QSPI_DDR_MODE_DISABLE;
     sCommand.DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
@@ -211,6 +212,7 @@ HAL_StatusTypeDef PureCommand(uint16_t command)
     sCommand.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
     sCommand.DataMode          = QSPI_DATA_NONE;
     sCommand.DummyCycles       = 0;
+    sCommand.NbData            = 0;
 
     sCommand.DdrMode          = QSPI_DDR_MODE_DISABLE;
     sCommand.DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
