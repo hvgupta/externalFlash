@@ -89,23 +89,23 @@ class Manager
 
     Manager(uint16_t subsections = 1);
 
-    State WriteStatusReg(uint8_t data, RegisterAddress reg_addr);    // can be literal
-    State ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr);  // has to be a refernce
+    State WriteStatusReg(uint8_t data, RegisterAddress reg_addr) const;    // can be literal
+    State ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr) const;  // has to be a refernce
 
     State WriteMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *data, uint32_t size); /*TO DO: requires replacement*/
     State WriteMemory(uint16_t blockNumber, uint8_t *data, uint32_t size);                              // can be a string/array
 
-    State ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint32_t size);  // has to be an array
+    State ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint32_t size) const;  // has to be an array
 
     State EraseRange(uint32_t start_addr, uint32_t end_addr); /*TO DO: requires replacement*/
     State EraseBlock(uint32_t blockNUM);
     State EraseChip();
 
-    State BB_LUT(uint8_t *buffer);
+    State BB_LUT(uint8_t *buffer) const;
 
-    uint16_t getLast_ECC_page_failure();
+    State getLast_ECC_page_failure(uint32_t &buffer) const;
 
-    bool CheckAddress(uint16_t block, uint16_t page, uint16_t startByte);
+    bool CheckAddress(uint16_t block, uint16_t page, uint16_t startByte) const;
 
    private:
     State status;  // the current state of the chip
@@ -113,14 +113,14 @@ class Manager
     const int subsections;           // divides up the 1024 blocks, Right now does not do anything
     uint32_t nextAddr[BLOCK_COUNT];  // gives the next byte
 
-    State WriteEnable();
-    State WriteDisable();
+    State WriteEnable() const;
+    State WriteDisable() const;
 
-    uint32_t get_JEDECID();
+    uint32_t get_JEDECID() const;
 
     State BB_management(); /*#TO DO*/
 
-    State SetBuffer(bool state);
+    State SetBuffer(bool state) const;
 };
 
 uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte);

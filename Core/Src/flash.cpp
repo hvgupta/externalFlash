@@ -12,17 +12,17 @@ bool isBusy()
 {
     uint8_t status;
     StatusReg_Rx(OPCode::READ_STATUS_REG, RegisterAddress::STATUS_REGISTER, &status);
-    return status & 0x01;
+    return (status & 0x01) || hqspi1.State != HAL_QSPI_STATE_READY;
 }
 
-uint32_t Manager::get_JEDECID()
+uint32_t Manager::get_JEDECID() const
 {
     uint8_t buffer[3] = {0};
     Command_Rx_1DataLine(OPCode::JEDEC_ID, buffer, 3, 0);
     return (buffer[0] << 16) | (buffer[1] << 8) | buffer[2];
 }
 
-Manager::State Manager::WriteEnable()
+Manager::State Manager::WriteEnable() const
 {
     if (PureCommand(OPCode::WRITE_ENABLE) != HAL_OK)
     {
@@ -31,7 +31,7 @@ Manager::State Manager::WriteEnable()
     return State::OK;
 }
 
-Manager::State Manager::WriteDisable()
+Manager::State Manager::WriteDisable() const
 {
     if (PureCommand(OPCode::WRITE_DISABLE) != HAL_OK)
     {
@@ -40,7 +40,7 @@ Manager::State Manager::WriteDisable()
     return State::OK;
 }
 
-Manager::State Manager::SetBuffer(bool state)
+Manager::State Manager::SetBuffer(bool state) const
 {
     uint8_t regData = 0;
     if (ReadStatusReg(&regData, RegisterAddress::CONFIGURATION_REGISTER) != State::OK)
@@ -93,7 +93,7 @@ Manager::Manager(uint16_t subsections) : subsections(subsections)
     }
 }
 
-Manager::State Manager::WriteStatusReg(uint8_t data, RegisterAddress reg_addr)
+Manager::State Manager::WriteStatusReg(uint8_t data, RegisterAddress reg_addr) const
 {
     if (isBusy())
     {
@@ -106,7 +106,7 @@ Manager::State Manager::WriteStatusReg(uint8_t data, RegisterAddress reg_addr)
     return State::OK;
 }
 
-Manager::State Manager::ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr)
+Manager::State Manager::ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr) const
 {
     if (StatusReg_Rx(OPCode::READ_STATUS_REG, reg_addr, buffer) != HAL_OK)
     {
@@ -150,7 +150,7 @@ Manager::State Manager::WriteMemory(uint16_t blockNumber, uint8_t *data, uint32_
     return State::OK;
 }
 
-bool Manager::CheckAddress(uint16_t block, uint16_t page, uint16_t startByte)
+bool Manager::CheckAddress(uint16_t block, uint16_t page, uint16_t startByte) const
 {
     if (block >= BLOCK_COUNT || block < 0)
     {
@@ -170,7 +170,7 @@ bool Manager::CheckAddress(uint16_t block, uint16_t page, uint16_t startByte)
     return true;
 }
 
-Manager::State Manager::ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint32_t size)
+Manager::State Manager::ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint32_t size) const
 {
     if (!CheckAddress(block, page, startByte))
     {
@@ -218,6 +218,7 @@ Manager::State Manager::EraseBlock(uint32_t blockNUM)
         return State::CHIP_ERR;
     }
 
+    nextAddr[blockNUM] = 0;
     return State::OK;
 }
 
@@ -250,7 +251,7 @@ Manager::State Manager::EraseChip()
     return State::OK;
 }
 
-Manager::State Manager::BB_LUT(uint8_t *buffer)
+Manager::State Manager::BB_LUT(uint8_t *buffer) const
 {
     if (isBusy())
     {
@@ -264,6 +265,24 @@ Manager::State Manager::BB_LUT(uint8_t *buffer)
 
     return State::OK;
 }
+
+Manager::State Manager::getLast_ECC_page_failure(uint32_t &buffer) const
+{
+    if (isBusy())
+    {
+        return State::BUSY;
+    }
+    uint8_t info[2] = {0};
+    if (Command_Rx_1DataLine(OPCode::LAST_ECC_FAILURE_ADDR, info, 2, 8) != HAL_OK)
+    {
+        return State::CHIP_ERR;
+    }
+    buffer = info[0] << 8 | info[1];
+    return State::OK;
+}
+
+Manager::State Manager::BB_management() {}
+
 }  // namespace W25N01
 }  // namespace Drivers
 }  // namespace Core
