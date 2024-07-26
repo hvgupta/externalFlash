@@ -1,5 +1,7 @@
 #include "flash.hpp"
 
+#include <cstring>
+
 #include "FreeRTOS.h"
 #include "task.h"
 
@@ -10,6 +12,8 @@ namespace Drivers
 namespace W25N01
 {
 uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte) { return ((block << 6 | page) << 12) | byte; }
+
+inline uint32_t min(uint32_t a, uint32_t b) { return a < b ? a : b; }
 
 bool isBusy()
 {
@@ -68,6 +72,8 @@ Manager::State Manager::WriteDisable() const
 
 Manager::State Manager::SetBuffer(bool state) const
 {
+    while (isBusy())
+        ;
     uint8_t regData = 0;
     if (ReadStatusReg(&regData, RegisterAddress::CONFIGURATION_REGISTER) != State::OK)
     {
@@ -102,7 +108,10 @@ Manager::Manager(uint16_t subsections) : subsections(subsections)
 
 Manager::State Manager::init() const
 {
-    PureCommand(OPCode::DEVICE_RESET);
+    if (PureCommand(OPCode::DEVICE_RESET) != HAL_OK)
+    {
+        return State::CHIP_ERR;
+    }
     if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, RegisterAddress::PROTECT_REGISTER, (uint8_t)0x00) != HAL_OK)
     {
         return State::CHIP_ERR;
@@ -122,10 +131,8 @@ Manager::State Manager::init() const
 
 Manager::State Manager::WriteStatusReg(uint8_t data, RegisterAddress reg_addr) const
 {
-    if (isBusy())
-    {
-        return State::BUSY;
-    }
+    while (isBusy())
+        ;
     if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, reg_addr, data) != HAL_OK)
     {
         return State::CHIP_ERR;
@@ -144,11 +151,6 @@ Manager::State Manager::ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr)
 
 Manager::State Manager::WriteMemory(uint16_t blockNumber, uint8_t *data, uint16_t size)
 {
-    if (isBusy())
-    {
-        return State::BUSY;
-    }
-
     if (blockNumber >= BLOCK_COUNT || blockNumber < 0)
     {
         return State::PARAM_ERR;
@@ -163,17 +165,29 @@ Manager::State Manager::WriteMemory(uint16_t blockNumber, uint8_t *data, uint16_
     {
         return State::CHIP_ERR;
     }
+    while (isBusy())
+        ;
+
     uint32_t totalAddr = calcAddress(blockNumber, nextAddr[blockNumber] & 0x3F000, nextAddr[blockNumber] & 0xFFF);
-    if (Command_Tx_4DataLine(OPCode::RANDOM_QUAD_LOAD_PROGRAM_DATA, data, totalAddr & 0xFFF, size) != HAL_OK)
+    uint16_t sizeTx    = min(size, maxDataSize);
+
+    if (Command_Tx_4DataLine(OPCode::RANDOM_QUAD_LOAD_PROGRAM_DATA, data, totalAddr & 0xFFF, sizeTx) != HAL_OK)
     {
         return State::CHIP_ERR;
     }
+    while (isBusy())
+        ;
     if (BufferCommand(totalAddr >> 12, OPCode::PROGRAM_EXECUTE) != HAL_OK)
     {
         return State::CHIP_ERR;
     }
 
-    nextAddr[blockNumber] += size;
+    nextAddr[blockNumber] += sizeTx;
+
+    if (size > maxDataSize)
+    {
+        return WriteMemory(blockNumber, data + maxDataSize, size - maxDataSize);
+    }
     return State::OK;
 }
 
@@ -203,12 +217,13 @@ Manager::State Manager::ReadMemory(uint16_t block, uint16_t page, uint16_t start
     {
         return State::PARAM_ERR;
     }
-    if (isBusy())
-    {
-        return State::BUSY;
-    }
+
     uint32_t address = calcAddress(block, page, startByte);
+    uint16_t sizeRx  = min(size, maxDataSize);
+
     SetBuffer(true);
+    while (isBusy())
+        ;
     if (BufferCommand(address >> 12, OPCode::PAGE_DATA_READ) != HAL_OK)
     {
         return State::CHIP_ERR;
@@ -216,20 +231,21 @@ Manager::State Manager::ReadMemory(uint16_t block, uint16_t page, uint16_t start
     while (isBusy())
         ;
 
-    if (Command_Rx_2DataLine(OPCode::FAST_READ_DUAL_OUTPUT, buffer, address & 0xFFF, size) != HAL_OK)
+    if (Command_Rx_2DataLine(OPCode::FAST_READ_DUAL_OUTPUT, buffer, address & 0xFFF, sizeRx) != HAL_OK)
     {
         return State::CHIP_ERR;
     }
+
+    if (size > maxDataSize)
+    {
+        return ReadMemory(block, page, startByte + maxDataSize, buffer + maxDataSize, size - maxDataSize);
+    }
+
     return State::OK;
 }
 
 Manager::State Manager::EraseBlock(uint32_t blockNUM)
 {
-    if (isBusy())
-    {
-        return State::BUSY;
-    }
-
     if (blockNUM >= BLOCK_COUNT || blockNUM < 0)
     {
         return State::PARAM_ERR;
@@ -251,16 +267,12 @@ Manager::State Manager::EraseBlock(uint32_t blockNUM)
 
 Manager::State Manager::EraseChip()
 {
-    if (isBusy())
-    {
-        return State::BUSY;
-    }
-
     if (WriteEnable() != State::OK)
     {
         return State::CHIP_ERR;
     }
 
+    taskENTER_CRITICAL();
     for (int i = 0; i < BLOCK_COUNT; i++)
     {
         State state = EraseBlock(i);
@@ -272,16 +284,14 @@ Manager::State Manager::EraseChip()
             continue;
         }
     }
-
+    taskEXIT_CRITICAL();
     return State::OK;
 }
 
 Manager::State Manager::BB_LUT(uint8_t *buffer) const
 {
-    if (isBusy())
-    {
-        return State::BUSY;
-    }
+    while (isBusy())
+        ;
 
     if (Command_Rx_1DataLine(OPCode::READ_BBM_LUT, buffer, 20, 8) != HAL_OK)
     {
@@ -293,10 +303,9 @@ Manager::State Manager::BB_LUT(uint8_t *buffer) const
 
 Manager::State Manager::getLast_ECC_page_failure(uint32_t &buffer) const
 {
-    if (isBusy())
-    {
-        return State::BUSY;
-    }
+    while (isBusy())
+        ;
+
     uint8_t info[2] = {0};
     if (Command_Rx_1DataLine(OPCode::LAST_ECC_FAILURE_ADDR, info, 2, 8) != HAL_OK)
     {

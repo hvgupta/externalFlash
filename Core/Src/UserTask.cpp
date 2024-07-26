@@ -17,9 +17,11 @@
 using namespace Core::Drivers;
 
 W25N01::Manager flash;
-static uint8_t buffer[20];
+uint8_t buffer[64];
 uint8_t t_byte = 0, t_page = 0, t_block = 0;
 uint8_t hmm[64];
+uint8_t start = false;
+int change    = 0;
 
 int numToStr(int num, uint8_t buffer[], int size)
 {
@@ -42,14 +44,7 @@ int numToStr(int num, uint8_t buffer[], int size)
 
 void blink(void *pvPara)
 {
-    for (int i = 0; i < 64; i++)
-    {
-        hmm[i] = i;
-    }
     HAL_GPIO_WritePin(LED_ACT_GPIO_Port, LED_ACT_Pin, GPIO_PIN_RESET);
-    while (W25N01::isBusy())
-        ;
-
     while (true)
     {
         if (W25N01::isBusy())
@@ -59,15 +54,12 @@ void blink(void *pvPara)
         HAL_GPIO_TogglePin(LED_ACT_GPIO_Port, LED_ACT_Pin);
         HAL_GPIO_TogglePin(LASER_GPIO_Port, LASER_Pin);
         // const uint8_t *hmm = reinterpret_cast<const unsigned char *>("The current time is: ");
-        // uint8_t buffer[20];
-        // int size = numToStr(xTaskGetTickCount(), buffer, 20) + 1;
-        flash.WriteMemory(0, hmm, 4);
-        // flash.WriteMemory(0, buffer, size);
+
         vTaskDelay(500);
     }
 }
 
-void anotherTask(void *pvPara)
+void readTask(void *pvPara)
 {
     while (true)
     {
@@ -75,7 +67,27 @@ void anotherTask(void *pvPara)
         {
             continue;
         }
-        flash.ReadMemory(t_block, t_page, t_byte, buffer, 4);
+        flash.ReadMemory(t_block, t_page, t_byte, buffer, 64);
+        vTaskDelay(1);
+    }
+}
+
+void writeTask(void *pvPara)
+{
+    for (int i = 0; i < 64; i++)
+    {
+        hmm[i] = i;
+    }
+
+    while (W25N01::isBusy())
+        ;
+    while (true)
+    {
+        if (W25N01::isBusy())
+        {
+            continue;
+        }
+        flash.WriteMemory(t_block, hmm, 64);
         vTaskDelay(1);
     }
 }
@@ -85,12 +97,16 @@ void anotherTask(void *pvPara)
  */
 StackType_t uxBlinkTaskStack[configMINIMAL_STACK_SIZE];
 StaticTask_t xBlinkTaskTCB;
-StackType_t uxAnotherTaskStack[configMINIMAL_STACK_SIZE];
-StaticTask_t xAnotherTaskTCB;
+StackType_t uxReadTaskStack[configMINIMAL_STACK_SIZE];
+StaticTask_t xReadTaskTCB;
+StackType_t uxWriteTaskStack[configMINIMAL_STACK_SIZE];
+StaticTask_t xWriteTaskTCB;
 void startUserTasks()
 {
+    start = true;
     flash.init();
     flash.EraseChip();
     xTaskCreateStatic(blink, "blink", configMINIMAL_STACK_SIZE, NULL, 0, uxBlinkTaskStack, &xBlinkTaskTCB);
-    xTaskCreateStatic(anotherTask, "anotherTask", configMINIMAL_STACK_SIZE, NULL, 0, uxAnotherTaskStack, &xAnotherTaskTCB);
+    xTaskCreateStatic(readTask, "readTask", configMINIMAL_STACK_SIZE, NULL, 0, uxReadTaskStack, &xReadTaskTCB);
+    xTaskCreateStatic(writeTask, "writeTask", configMINIMAL_STACK_SIZE, NULL, 0, uxWriteTaskStack, &xWriteTaskTCB);
 }
