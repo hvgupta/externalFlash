@@ -21,8 +21,26 @@ bool isBusy()
 uint32_t Manager::get_JEDECID() const
 {
     uint8_t buffer[3] = {0};
-    Command_Rx_1DataLine(OPCode::JEDEC_ID, buffer, 3, 0);
+    Command_Rx_1DataLine(OPCode::JEDEC_ID, buffer, 3, 8);
     return (buffer[0] << 16) | (buffer[1] << 8) | buffer[2];
+}
+
+Manager::State Manager::SetWritePin(bool state) const
+{
+    uint8_t regData = 0;
+    if (ReadStatusReg(&regData, RegisterAddress::STATUS_REGISTER) != State::OK)
+    {
+        return State::CHIP_ERR;
+    }
+    if ((state && (regData & 0x2)) || (!state && !(regData & 0x2))) /*skip if the buffer is already set to the desired mode*/
+    {
+        return State::OK;
+    }
+    if (state)
+    {
+        return WriteEnable();
+    }
+    return WriteDisable();
 }
 
 Manager::State Manager::WriteEnable() const
@@ -76,29 +94,30 @@ Manager::State Manager::SetBuffer(bool state) const
 
 Manager::Manager(uint16_t subsections) : subsections(subsections)
 {
-    status = State::OK;
-    PureCommand(OPCode::DEVICE_RESET);
     for (int i = 0; i < BLOCK_COUNT; i++)
     {
         nextAddr[i] = 0;
     }
+}
 
+Manager::State Manager::init() const
+{
+    PureCommand(OPCode::DEVICE_RESET);
     if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, RegisterAddress::PROTECT_REGISTER, (uint8_t)0x00) != HAL_OK)
     {
-        status = State::CHIP_ERR;
-        return;
+        return State::CHIP_ERR;
     }
 
     if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, RegisterAddress::CONFIGURATION_REGISTER, (uint8_t)0x10) != HAL_OK)
     {
-        status = State::CHIP_ERR;
-        return;
+        return State::CHIP_ERR;
     }
 
     if (get_JEDECID() != JEDECID_EXEPECTED)
     {
-        status = State::CHIP_ERR;
+        return State::CHIP_ERR;
     }
+    return State::OK;
 }
 
 Manager::State Manager::WriteStatusReg(uint8_t data, RegisterAddress reg_addr) const
@@ -221,7 +240,7 @@ Manager::State Manager::EraseBlock(uint32_t blockNUM)
         return State::CHIP_ERR;
     }
 
-    if (BufferCommand(calcAddress(blockNUM, 0, 0), OPCode::BLOCK_ERASE) != HAL_OK)
+    if (BufferCommand(calcAddress(blockNUM, 0, 0) >> 12, OPCode::BLOCK_ERASE) != HAL_OK)
     {
         return State::CHIP_ERR;
     }
@@ -247,12 +266,10 @@ Manager::State Manager::EraseChip()
         State state = EraseBlock(i);
         switch (state)
         {
-        case State::BUSY:
+        default:
             i--;
         case State::OK:
             continue;
-        case State::CHIP_ERR: /*Data until this block error has been erased*/
-            return State::CHIP_ERR;
         }
     }
 

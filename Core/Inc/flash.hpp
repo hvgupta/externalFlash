@@ -109,6 +109,10 @@ class Manager
 
     bool CheckAddress(uint16_t block, uint16_t page, uint16_t startByte) const;
 
+    State SetWritePin(bool state) const;
+
+    State init() const;
+
    private:
     State status;  // the current state of the chip
 

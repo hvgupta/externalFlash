@@ -49,7 +49,6 @@ void blink(void *pvPara)
     HAL_GPIO_WritePin(LED_ACT_GPIO_Port, LED_ACT_Pin, GPIO_PIN_RESET);
     while (W25N01::isBusy())
         ;
-    flash.EraseChip();
 
     while (true)
     {
@@ -90,6 +89,8 @@ StackType_t uxAnotherTaskStack[configMINIMAL_STACK_SIZE];
 StaticTask_t xAnotherTaskTCB;
 void startUserTasks()
 {
+    flash.init();
+    flash.EraseChip();
     xTaskCreateStatic(blink, "blink", configMINIMAL_STACK_SIZE, NULL, 0, uxBlinkTaskStack, &xBlinkTaskTCB);
     xTaskCreateStatic(anotherTask, "anotherTask", configMINIMAL_STACK_SIZE, NULL, 0, uxAnotherTaskStack, &xAnotherTaskTCB);
 }
