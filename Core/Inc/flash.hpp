@@ -38,6 +38,8 @@ namespace W25N01
 static constexpr uint8_t MANUFACTURER_ID = 0xEF;
 static constexpr uint16_t DEVICE_ID      = 0xAA21;
 
+constexpr uint8_t maxDataSize = 40;
+
 enum OPCode : uint8_t
 {
     DEVICE_RESET = 0XFF,
@@ -93,7 +95,7 @@ class Manager
     State ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr) const;  // has to be a refernce
 
     State WriteMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *data, uint32_t size); /*TO DO: requires replacement*/
-    State WriteMemory(uint16_t blockNumber, uint8_t *data, uint32_t size);                              // can be a string/array
+    State WriteMemory(uint16_t blockNumber, uint8_t *data, uint16_t size);                              // can be a string/array
 
     State ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint32_t size) const;  // has to be an array
 

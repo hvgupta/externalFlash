@@ -16,11 +16,10 @@
 
 using namespace Core::Drivers;
 
-StackType_t uxBlinkTaskStack[configMINIMAL_STACK_SIZE];
-StaticTask_t xBlinkTaskTCB;
 W25N01::Manager flash;
 static uint8_t buffer[20];
-uint8_t t_byte = 0;
+uint8_t t_byte = 0, t_page = 0, t_block = 0;
+uint8_t hmm[64];
 
 int numToStr(int num, uint8_t buffer[], int size)
 {
@@ -43,26 +42,54 @@ int numToStr(int num, uint8_t buffer[], int size)
 
 void blink(void *pvPara)
 {
+    for (int i = 0; i < 64; i++)
+    {
+        hmm[i] = i;
+    }
     HAL_GPIO_WritePin(LED_ACT_GPIO_Port, LED_ACT_Pin, GPIO_PIN_RESET);
     while (W25N01::isBusy())
         ;
-    // flash.EraseChip();
+    flash.EraseChip();
 
     while (true)
     {
+        if (W25N01::isBusy())
+        {
+            continue;
+        }
         HAL_GPIO_TogglePin(LED_ACT_GPIO_Port, LED_ACT_Pin);
         HAL_GPIO_TogglePin(LASER_GPIO_Port, LASER_Pin);
-        const uint8_t *hmm = reinterpret_cast<const unsigned char *>("The current time is: ");
-        uint8_t buffer[20];
-        int size = numToStr(xTaskGetTickCount(), buffer, 20) + 1;
-        // flash.WriteMemory(0, (uint8_t *)hmm, 22);
+        // const uint8_t *hmm = reinterpret_cast<const unsigned char *>("The current time is: ");
+        // uint8_t buffer[20];
+        // int size = numToStr(xTaskGetTickCount(), buffer, 20) + 1;
+        flash.WriteMemory(0, hmm, 4);
         // flash.WriteMemory(0, buffer, size);
-        flash.ReadMemory(0, 0, t_byte, buffer, 20);
         vTaskDelay(500);
+    }
+}
+
+void anotherTask(void *pvPara)
+{
+    while (true)
+    {
+        if (W25N01::isBusy())
+        {
+            continue;
+        }
+        flash.ReadMemory(t_block, t_page, t_byte, buffer, 4);
+        vTaskDelay(1);
     }
 }
 
 /**
  * @brief Create user tasks
  */
-void startUserTasks() { xTaskCreateStatic(blink, "blink", configMINIMAL_STACK_SIZE, NULL, 0, uxBlinkTaskStack, &xBlinkTaskTCB); }
+StackType_t uxBlinkTaskStack[configMINIMAL_STACK_SIZE];
+StaticTask_t xBlinkTaskTCB;
+StackType_t uxAnotherTaskStack[configMINIMAL_STACK_SIZE];
+StaticTask_t xAnotherTaskTCB;
+void startUserTasks()
+{
+    xTaskCreateStatic(blink, "blink", configMINIMAL_STACK_SIZE, NULL, 0, uxBlinkTaskStack, &xBlinkTaskTCB);
+    xTaskCreateStatic(anotherTask, "anotherTask", configMINIMAL_STACK_SIZE, NULL, 0, uxAnotherTaskStack, &xAnotherTaskTCB);
+}

@@ -1,5 +1,8 @@
 #include "flash.hpp"
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 namespace Core
 {
 namespace Drivers
@@ -24,6 +27,9 @@ uint32_t Manager::get_JEDECID() const
 
 Manager::State Manager::WriteEnable() const
 {
+    while (isBusy())
+        ;
+
     if (PureCommand(OPCode::WRITE_ENABLE) != HAL_OK)
     {
         return State::CHIP_ERR;
@@ -33,6 +39,8 @@ Manager::State Manager::WriteEnable() const
 
 Manager::State Manager::WriteDisable() const
 {
+    while (isBusy())
+        ;
     if (PureCommand(OPCode::WRITE_DISABLE) != HAL_OK)
     {
         return State::CHIP_ERR;
@@ -115,7 +123,7 @@ Manager::State Manager::ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr)
     return State::OK;
 }
 
-Manager::State Manager::WriteMemory(uint16_t blockNumber, uint8_t *data, uint32_t size)
+Manager::State Manager::WriteMemory(uint16_t blockNumber, uint8_t *data, uint16_t size)
 {
     if (isBusy())
     {
@@ -281,7 +289,7 @@ Manager::State Manager::getLast_ECC_page_failure(uint32_t &buffer) const
     return State::OK;
 }
 
-Manager::State Manager::BB_management() {}
+// Manager::State Manager::BB_management() {}
 
 }  // namespace W25N01
 }  // namespace Drivers
