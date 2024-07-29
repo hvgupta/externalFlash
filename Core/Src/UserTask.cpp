@@ -18,10 +18,11 @@ using namespace Core::Drivers;
 
 W25N01::Manager flash;
 uint8_t buffer[64];
-uint8_t t_byte = 0, t_page = 0, t_block = 0;
+uint16_t t_byte = 0, t_page = 0, t_block = 0;
 uint8_t hmm[64];
-uint8_t start = false;
-int change    = 0;
+uint8_t start          = false;
+int change             = 0;
+long unsigned int bruh = 0;
 
 int numToStr(int num, uint8_t buffer[], int size)
 {
@@ -67,6 +68,7 @@ void readTask(void *pvPara)
         {
             continue;
         }
+
         flash.ReadMemory(t_block, t_page, t_byte, buffer, 64);
         vTaskDelay(1);
     }
@@ -88,6 +90,7 @@ void writeTask(void *pvPara)
             continue;
         }
         flash.WriteMemory(t_block, hmm, 64);
+        flash.getLast_ECC_page_failure(bruh);
         vTaskDelay(1);
     }
 }

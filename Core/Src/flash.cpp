@@ -34,7 +34,7 @@ Manager::State Manager::SetWritePin(bool state) const
     uint8_t regData = 0;
     if (ReadStatusReg(&regData, RegisterAddress::STATUS_REGISTER) != State::OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
     if ((state && (regData & 0x2)) || (!state && !(regData & 0x2))) /*skip if the buffer is already set to the desired mode*/
     {
@@ -54,7 +54,7 @@ Manager::State Manager::WriteEnable() const
 
     if (PureCommand(OPCode::WRITE_ENABLE) != HAL_OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
     return State::OK;
 }
@@ -65,7 +65,7 @@ Manager::State Manager::WriteDisable() const
         ;
     if (PureCommand(OPCode::WRITE_DISABLE) != HAL_OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
     return State::OK;
 }
@@ -77,7 +77,7 @@ Manager::State Manager::SetBuffer(bool state) const
     uint8_t regData = 0;
     if (ReadStatusReg(&regData, RegisterAddress::CONFIGURATION_REGISTER) != State::OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
     if ((state && (regData & 0x8)) || (!state && !(regData & 0x8))) /*skip if the buffer is already set to the desired mode*/
     {
@@ -93,7 +93,7 @@ Manager::State Manager::SetBuffer(bool state) const
     }
     if (WriteStatusReg(regData, RegisterAddress::CONFIGURATION_REGISTER) != State::OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
     return State::OK;
 }
@@ -110,16 +110,16 @@ Manager::State Manager::init() const
 {
     if (PureCommand(OPCode::DEVICE_RESET) != HAL_OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
     if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, RegisterAddress::PROTECT_REGISTER, (uint8_t)0x00) != HAL_OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
 
     if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, RegisterAddress::CONFIGURATION_REGISTER, (uint8_t)0x10) != HAL_OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
 
     if (get_JEDECID() != JEDECID_EXEPECTED)
@@ -135,7 +135,7 @@ Manager::State Manager::WriteStatusReg(uint8_t data, RegisterAddress reg_addr) c
         ;
     if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, reg_addr, data) != HAL_OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
     return State::OK;
 }
@@ -144,7 +144,7 @@ Manager::State Manager::ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr)
 {
     if (StatusReg_Rx(OPCode::READ_STATUS_REG, reg_addr, buffer) != HAL_OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
     return State::OK;
 }
@@ -163,31 +163,26 @@ Manager::State Manager::WriteMemory(uint16_t blockNumber, uint8_t *data, uint16_
 
     if (WriteEnable() != State::OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
     while (isBusy())
         ;
 
     uint32_t totalAddr = calcAddress(blockNumber, nextAddr[blockNumber] & 0x3F000, nextAddr[blockNumber] & 0xFFF);
-    uint16_t sizeTx    = min(size, maxDataSize);
 
-    if (Command_Tx_4DataLine(OPCode::RANDOM_QUAD_LOAD_PROGRAM_DATA, data, totalAddr & 0xFFF, sizeTx) != HAL_OK)
+    if (Command_Tx_4DataLine(OPCode::RANDOM_QUAD_LOAD_PROGRAM_DATA, data, totalAddr & 0xFFF, size) != HAL_OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
     while (isBusy())
         ;
     if (BufferCommand(totalAddr >> 12, OPCode::PROGRAM_EXECUTE) != HAL_OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
 
-    nextAddr[blockNumber] += sizeTx;
+    nextAddr[blockNumber] += size;
 
-    if (size > maxDataSize)
-    {
-        return WriteMemory(blockNumber, data + maxDataSize, size - maxDataSize);
-    }
     return State::OK;
 }
 
@@ -211,34 +206,33 @@ bool Manager::CheckAddress(uint16_t block, uint16_t page, uint16_t startByte) co
     return true;
 }
 
-Manager::State Manager::ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint32_t size) const
+Manager::State Manager::ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint16_t size) const
 {
     if (!CheckAddress(block, page, startByte))
     {
         return State::PARAM_ERR;
     }
 
+    if (startByte + size > 2048)
+    {
+        return State::PARAM_ERR;
+    }
+
     uint32_t address = calcAddress(block, page, startByte);
-    uint16_t sizeRx  = min(size, maxDataSize);
 
     SetBuffer(true);
     while (isBusy())
         ;
     if (BufferCommand(address >> 12, OPCode::PAGE_DATA_READ) != HAL_OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
     while (isBusy())
         ;
 
-    if (Command_Rx_2DataLine(OPCode::FAST_READ_DUAL_OUTPUT, buffer, address & 0xFFF, sizeRx) != HAL_OK)
+    if (Command_Rx_2DataLine(OPCode::FAST_READ_DUAL_OUTPUT, buffer, address & 0xFFF, size) != HAL_OK)
     {
-        return State::CHIP_ERR;
-    }
-
-    if (size > maxDataSize)
-    {
-        return ReadMemory(block, page, startByte + maxDataSize, buffer + maxDataSize, size - maxDataSize);
+        return State::QSPI_ERR;
     }
 
     return State::OK;
@@ -253,12 +247,12 @@ Manager::State Manager::EraseBlock(uint32_t blockNUM)
 
     if (WriteEnable() != State::OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
 
     if (BufferCommand(calcAddress(blockNUM, 0, 0) >> 12, OPCode::BLOCK_ERASE) != HAL_OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
 
     nextAddr[blockNUM] = 0;
@@ -269,7 +263,7 @@ Manager::State Manager::EraseChip()
 {
     if (WriteEnable() != State::OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
 
     taskENTER_CRITICAL();
@@ -295,7 +289,7 @@ Manager::State Manager::BB_LUT(uint8_t *buffer) const
 
     if (Command_Rx_1DataLine(OPCode::READ_BBM_LUT, buffer, 20, 8) != HAL_OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
 
     return State::OK;
@@ -309,13 +303,20 @@ Manager::State Manager::getLast_ECC_page_failure(uint32_t &buffer) const
     uint8_t info[2] = {0};
     if (Command_Rx_1DataLine(OPCode::LAST_ECC_FAILURE_ADDR, info, 2, 8) != HAL_OK)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
-    buffer = info[0] << 8 | info[1];
+    buffer            = info[0] << 8 | info[1];
+    uint8_t ECC_Check = 0;
+    if (ReadStatusReg(&ECC_Check, RegisterAddress::STATUS_REGISTER) != State::OK)
+    {
+        return State::QSPI_ERR;
+    }
+    if (ECC_Check & 64)
+    {
+        return State::ECC_ERR;
+    }
     return State::OK;
 }
-
-// Manager::State Manager::BB_management() {}
 
 }  // namespace W25N01
 }  // namespace Drivers

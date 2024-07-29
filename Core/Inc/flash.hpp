@@ -81,12 +81,10 @@ class Manager
    public:
     enum class State
     {
-        OK          = 0,  ///< Chip OK - Execution fine
-        BUSY        = 1,  ///< Chip busy
-        PARAM_ERR   = 2,  ///< Function parameters error
-        CHIP_ERR    = 3,  ///< Chip error
-        SPI_ERR     = 4,  ///< SPI Bus err
-        CHIP_IGNORE = 5,  ///< Chip ignore state
+        OK        = 0,  ///< Chip OK - Execution fine
+        PARAM_ERR = 1,  ///< Function parameters error
+        ECC_ERR   = 2,  ///< ECC error
+        QSPI_ERR  = 3   ///< SPI Bus err
     };
 
     Manager(uint16_t subsections = 1);
@@ -94,10 +92,10 @@ class Manager
     State WriteStatusReg(uint8_t data, RegisterAddress reg_addr) const;    // can be literal
     State ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr) const;  // has to be a refernce
 
-    State WriteMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *data, uint32_t size); /*TO DO: requires replacement*/
+    State WriteMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *data, uint16_t size); /*TO DO: requires replacement*/
     State WriteMemory(uint16_t blockNumber, uint8_t *data, uint16_t size);                              // can be a string/array
 
-    State ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint32_t size) const;  // has to be an array
+    State ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint16_t size) const;  // has to be an array
 
     State EraseRange(uint32_t start_addr, uint32_t end_addr); /*TO DO: requires replacement*/
     State EraseBlock(uint32_t blockNUM);
