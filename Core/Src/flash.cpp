@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "FreeRTOS.h"
+#include "math.h"
 #include "task.h"
 
 namespace Core
@@ -11,9 +12,11 @@ namespace Drivers
 {
 namespace W25N01
 {
-uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte) { return ((block << 6 | page) << 12) | byte; }
+inline uint16_t calcAddress(uint16_t block, uint16_t page) { return block << 6 | page; }
+inline uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte) { return (calcAddress(block, page) << 12) | byte; }
 
 inline uint32_t min(uint32_t a, uint32_t b) { return a < b ? a : b; }
+int lastAddr = 0;
 
 bool isBusy()
 {
@@ -124,7 +127,7 @@ Manager::State Manager::init() const
 
     if (get_JEDECID() != JEDECID_EXEPECTED)
     {
-        return State::CHIP_ERR;
+        return State::QSPI_ERR;
     }
     return State::OK;
 }
@@ -149,39 +152,64 @@ Manager::State Manager::ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr)
     return State::OK;
 }
 
-Manager::State Manager::WriteMemory(uint16_t blockNumber, uint8_t *data, uint16_t size)
+Manager::State Manager::WriteMemory(uint16_t blockNum, uint8_t *data, uint16_t size)
 {
-    if (blockNumber >= BLOCK_COUNT || blockNumber < 0)
+    if (blockNum >= BLOCK_COUNT || blockNum < 0)
     {
         return State::PARAM_ERR;
     }
 
-    if (nextAddr[blockNumber] + size > 2048)
+    uint16_t nextBlock    = (nextAddr[blockNum] & blockAddrFilter) >> 18;
+    uint16_t pageNum      = (nextAddr[blockNum] & pageAddrFilter) >> 12;
+    uint16_t nextByte     = nextAddr[blockNum] & byteAddrFilter;
+    uint16_t sizeWriteNow = size;
+
+    if (nextBlock)
     {
         return State::PARAM_ERR;
+    }
+
+    if (nextByte + size > MEM_PAGE_SIZE_BYTE)
+    {
+        sizeWriteNow             = MEM_PAGE_SIZE_BYTE - nextByte;
+        uint16_t extraPageNeeded = std::ceil((float)(size - sizeWriteNow) / (float)MEM_PAGE_SIZE_BYTE);
+        if (pageNum + extraPageNeeded >= PAGE_PER_BLOCK)
+        {
+            return State::PARAM_ERR;
+        }
     }
 
     if (WriteEnable() != State::OK)
     {
         return State::QSPI_ERR;
     }
-    while (isBusy())
-        ;
-
-    uint32_t totalAddr = calcAddress(blockNumber, nextAddr[blockNumber] & 0x3F000, nextAddr[blockNumber] & 0xFFF);
-
-    if (Command_Tx_4DataLine(OPCode::RANDOM_QUAD_LOAD_PROGRAM_DATA, data, totalAddr & 0xFFF, size) != HAL_OK)
+    taskENTER_CRITICAL();
+    while (size)
     {
-        return State::QSPI_ERR;
-    }
-    while (isBusy())
-        ;
-    if (BufferCommand(totalAddr >> 12, OPCode::PROGRAM_EXECUTE) != HAL_OK)
-    {
-        return State::QSPI_ERR;
-    }
+        while (isBusy())
+            ;
 
-    nextAddr[blockNumber] += size;
+        if (Command_Tx_4DataLine(OPCode::RANDOM_QUAD_LOAD_PROGRAM_DATA, data, nextByte, sizeWriteNow) != HAL_OK)
+        {
+            taskEXIT_CRITICAL();
+            return State::QSPI_ERR;
+        }
+        while (isBusy())
+            ;
+        if (BufferCommand(calcAddress(blockNum, pageNum), OPCode::PROGRAM_EXECUTE) != HAL_OK)
+        {
+            taskEXIT_CRITICAL();
+            return State::QSPI_ERR;
+        }
+        incrementAddr(blockNum, sizeWriteNow);
+        size -= sizeWriteNow;
+        data += sizeWriteNow;
+
+        pageNum      = (nextAddr[blockNum] & pageAddrFilter) >> 12;
+        nextByte     = nextAddr[blockNum] & byteAddrFilter;
+        sizeWriteNow = min(size, MEM_PAGE_SIZE_BYTE - nextByte);
+    }
+    taskEXIT_CRITICAL();
 
     return State::OK;
 }
@@ -198,7 +226,7 @@ bool Manager::CheckAddress(uint16_t block, uint16_t page, uint16_t startByte) co
         return false;
     }
 
-    if (startByte >= 2048 || startByte < 0)
+    if (startByte >= MEM_PAGE_SIZE_BYTE || startByte < 0)
     {
         return false;
     }
@@ -213,18 +241,20 @@ Manager::State Manager::ReadMemory(uint16_t block, uint16_t page, uint16_t start
         return State::PARAM_ERR;
     }
 
-    if (startByte + size > 2048)
+    if (startByte + size > MEM_PAGE_SIZE_BYTE)
     {
         return State::PARAM_ERR;
     }
 
     uint32_t address = calcAddress(block, page, startByte);
 
+    taskENTER_CRITICAL();
     SetBuffer(true);
     while (isBusy())
         ;
     if (BufferCommand(address >> 12, OPCode::PAGE_DATA_READ) != HAL_OK)
     {
+        taskEXIT_CRITICAL();
         return State::QSPI_ERR;
     }
     while (isBusy())
@@ -232,9 +262,10 @@ Manager::State Manager::ReadMemory(uint16_t block, uint16_t page, uint16_t start
 
     if (Command_Rx_2DataLine(OPCode::FAST_READ_DUAL_OUTPUT, buffer, address & 0xFFF, size) != HAL_OK)
     {
+        taskEXIT_CRITICAL();
         return State::QSPI_ERR;
     }
-
+    taskEXIT_CRITICAL();
     return State::OK;
 }
 
@@ -245,12 +276,18 @@ Manager::State Manager::EraseBlock(uint32_t blockNUM)
         return State::PARAM_ERR;
     }
 
+    while (isBusy())
+        ;
+
     if (WriteEnable() != State::OK)
     {
         return State::QSPI_ERR;
     }
 
-    if (BufferCommand(calcAddress(blockNUM, 0, 0) >> 12, OPCode::BLOCK_ERASE) != HAL_OK)
+    while (isBusy())
+        ;
+
+    if (BufferCommand(calcAddress(blockNUM, 0), OPCode::BLOCK_ERASE) != HAL_OK)
     {
         return State::QSPI_ERR;
     }
@@ -316,6 +353,51 @@ Manager::State Manager::getLast_ECC_page_failure(uint32_t &buffer) const
         return State::ECC_ERR;
     }
     return State::OK;
+}
+
+Manager::State Manager::BB_management()
+{
+    uint8_t data[MEM_PAGE_SIZE_BYTE];
+    uint8_t buffer[MEM_PAGE_SIZE_BYTE];
+    for (int a = 0; a < MEM_PAGE_SIZE_BYTE; a++)
+    {
+        data[a] = a;
+    }
+    uint16_t badBlocks[20], j    = 0;
+    uint16_t goodBlocks[1024], k = 0;
+    for (int i = 0; i < BLOCK_COUNT; i++)
+    {
+        EraseBlock(i);
+        WriteMemory(i, data, MEM_PAGE_SIZE_BYTE);
+        uint32_t addr = 0;
+        State result  = getLast_ECC_page_failure(addr);
+        if (result == State::ECC_ERR && (addr >> 18) == i)
+        {
+            badBlocks[j++] = i;
+        }
+        ReadMemory(i, 0, 0, buffer, MEM_PAGE_SIZE_BYTE);
+    }
+    for (int i = 0; i < j; i++)
+    {
+        if (BB_Entry(badBlocks[i], goodBlocks[--k]) != State::OK)
+        {
+            return State::QSPI_ERR;
+        }
+    }
+    return State::OK;
+}
+
+void Manager::incrementAddr(uint16_t blockNum, uint16_t size)
+{
+    uint16_t pageNum  = (nextAddr[blockNum] & pageAddrFilter) >> 12;
+    uint16_t nextByte = nextAddr[blockNum] & byteAddrFilter;
+    nextByte += size;
+    if (nextByte >= MEM_PAGE_SIZE_BYTE)
+    {
+        nextByte = 0;
+        pageNum += 1;
+    }
+    nextAddr[blockNum] = calcAddress(0, pageNum, nextByte);
 }
 
 }  // namespace W25N01

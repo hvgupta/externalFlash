@@ -22,26 +22,25 @@
 #define __QUADSPI_H__
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-    /* USER CODE BEGIN Includes */
+/* USER CODE BEGIN Includes */
 
-    /* USER CODE END Includes */
+/* USER CODE END Includes */
 
-    extern QSPI_HandleTypeDef hqspi1;
+extern QSPI_HandleTypeDef hqspi1;
 
-    /* USER CODE BEGIN Private defines */
+/* USER CODE BEGIN Private defines */
 
-    /* USER CODE END Private defines */
+/* USER CODE END Private defines */
 
-    void MX_QUADSPI1_Init(void);
+void MX_QUADSPI1_Init(void);
 
-    /* USER CODE BEGIN Prototypes */
+/* USER CODE BEGIN Prototypes */
     HAL_StatusTypeDef BufferCommand(uint16_t pageAddr, uint16_t command);
 
     HAL_StatusTypeDef PureCommand(uint16_t command);
@@ -55,10 +54,11 @@ extern "C"
 
     HAL_StatusTypeDef StatusReg_Tx(uint16_t command, uint16_t regAddr, uint8_t data);
     HAL_StatusTypeDef StatusReg_Rx(uint16_t command, uint16_t regAddr, uint8_t *buffer);
-    /* USER CODE END Prototypes */
+/* USER CODE END Prototypes */
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __QUADSPI_H__ */
+

@@ -17,12 +17,15 @@
 using namespace Core::Drivers;
 
 W25N01::Manager flash;
-uint8_t buffer[64];
+uint8_t buffer[2048];
 uint16_t t_byte = 0, t_page = 0, t_block = 0;
-uint8_t hmm[64];
-uint8_t start          = false;
-int change             = 0;
-long unsigned int bruh = 0;
+uint8_t hmm[2049];
+int test      = 0;
+int change    = 0;
+uint32_t bruh = 0;
+W25N01::Manager::State someError;
+int trigger = 0;
+int read = 0, write = 0;
 
 int numToStr(int num, uint8_t buffer[], int size)
 {
@@ -62,25 +65,30 @@ void blink(void *pvPara)
 
 void readTask(void *pvPara)
 {
+    trigger += 1;
     while (true)
     {
         if (W25N01::isBusy())
         {
             continue;
         }
+        if (read)
+        {
+            for (int i = 0; i < 2048; i++)
+            {
+                buffer[i] = 0;
+            }
 
-        flash.ReadMemory(t_block, t_page, t_byte, buffer, 64);
+            flash.ReadMemory(t_block, t_page, t_byte, buffer, 2048) != W25N01::Manager::State::OK;
+            read = 0;
+        }
+
         vTaskDelay(1);
     }
 }
 
 void writeTask(void *pvPara)
 {
-    for (int i = 0; i < 64; i++)
-    {
-        hmm[i] = i;
-    }
-
     while (W25N01::isBusy())
         ;
     while (true)
@@ -89,8 +97,16 @@ void writeTask(void *pvPara)
         {
             continue;
         }
-        flash.WriteMemory(t_block, hmm, 64);
-        flash.getLast_ECC_page_failure(bruh);
+        if (write)
+        {
+            for (int i = 0; i < 2049; i++)
+            {
+                hmm[i] = t_block + 10;
+            }
+            flash.WriteMemory(t_block, hmm, 2049) != W25N01::Manager::State::OK;
+            write -= 1;
+        }
+        someError = flash.getLast_ECC_page_failure(bruh);
         vTaskDelay(1);
     }
 }
@@ -106,10 +122,9 @@ StackType_t uxWriteTaskStack[configMINIMAL_STACK_SIZE];
 StaticTask_t xWriteTaskTCB;
 void startUserTasks()
 {
-    start = true;
     flash.init();
     flash.EraseChip();
-    xTaskCreateStatic(blink, "blink", configMINIMAL_STACK_SIZE, NULL, 0, uxBlinkTaskStack, &xBlinkTaskTCB);
+    // xTaskCreateStatic(blink, "blink", configMINIMAL_STACK_SIZE, NULL, 0, uxBlinkTaskStack, &xBlinkTaskTCB);
     xTaskCreateStatic(readTask, "readTask", configMINIMAL_STACK_SIZE, NULL, 0, uxReadTaskStack, &xReadTaskTCB);
     xTaskCreateStatic(writeTask, "writeTask", configMINIMAL_STACK_SIZE, NULL, 0, uxWriteTaskStack, &xWriteTaskTCB);
 }

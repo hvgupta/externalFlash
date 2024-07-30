@@ -26,7 +26,14 @@
 // the number of pages per block
 #define PAGE_PER_BLOCK (PAGE_COUNT / BLOCK_COUNT)  // 64 pages per block
 
+#define MEM_PAGE_SIZE_BYTE 2048
+#define MEM_ECC_SIZE_BYTE 64
+
 #define JEDECID_EXEPECTED 0xEFAA21
+
+#define blockAddrFilter 0xFFC0000
+#define pageAddrFilter 0x3F000
+#define byteAddrFilter 0x7FF
 
 namespace Core
 {
@@ -111,6 +118,8 @@ class Manager
 
     State init() const;
 
+    State BB_management(); /*#TO DO*/
+
    private:
     State status;  // the current state of the chip
 
@@ -122,12 +131,15 @@ class Manager
 
     uint32_t get_JEDECID() const;
 
-    State BB_management(); /*#TO DO*/
+    State BB_Entry(const uint16_t &badBlockAddr, const uint16_t &goodBlockAddr) const;
 
     State SetBuffer(bool state) const;
+
+    void incrementAddr(uint16_t blockNum, uint16_t size);
 };
 
-uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte);
+inline uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte);
+inline uint16_t calcAddress(uint16_t block, uint16_t page);
 
 bool isBusy();
 
