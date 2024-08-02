@@ -22,7 +22,8 @@ bool isBusy()
 {
     uint8_t status;
     StatusReg_Rx(OPCode::READ_STATUS_REG, RegisterAddress::STATUS_REGISTER, &status);
-    return (status & 0x01) || hqspi1.State != HAL_QSPI_STATE_READY;
+    return (status & 0x01) || hqspi1.State != HAL_QSPI_STATE_READY || hqspi1.hdma->State != HAL_DMA_STATE_READY || hqspi1.TxXferCount != 0 ||
+           hqspi1.RxXferCount != 0;
 }
 
 uint32_t Manager::get_JEDECID() const
@@ -129,7 +130,6 @@ Manager::State Manager::init() const
     {
         return State::QSPI_ERR;
     }
-    ReadMemory(0, 0, 0, (uint8_t *)localBuffer, MEM_PAGE_SIZE_BYTE);
     return State::OK;
 }
 
@@ -180,29 +180,33 @@ Manager::State Manager::WriteMemory(uint16_t blockNum, uint8_t *data, uint16_t s
         }
     }
 
-    taskENTER_CRITICAL();
-    if (WriteEnable() != State::OK)
-    {
-        return State::QSPI_ERR;
-    }
     while (size)
     {
+        if (WriteEnable() != State::OK)
+        {
+            return State::QSPI_ERR;
+        }
         while (isBusy())
             ;
-
+        taskENTER_CRITICAL();
         if (Command_Tx_4DataLine(OPCode::QUAD_LOAD_PROGRAM_DATA, data, nextByte, sizeWriteNow) != HAL_OK)
         {
             taskEXIT_CRITICAL();
             return State::QSPI_ERR;
         }
+        taskEXIT_CRITICAL();
+
         while (isBusy())
             ;
+        taskENTER_CRITICAL();
         if (BufferCommand(calcAddress(blockNum, pageNum), OPCode::PROGRAM_EXECUTE) != HAL_OK)
         {
             taskEXIT_CRITICAL();
             return State::QSPI_ERR;
         }
         incrementAddr(blockNum, sizeWriteNow);
+        taskEXIT_CRITICAL();
+
         size -= sizeWriteNow;
         data += sizeWriteNow;
 
@@ -210,7 +214,6 @@ Manager::State Manager::WriteMemory(uint16_t blockNum, uint8_t *data, uint16_t s
         nextByte     = nextAddr[blockNum] & byteAddrFilter;
         sizeWriteNow = min(size, MEM_PAGE_SIZE_BYTE - nextByte);
     }
-    taskEXIT_CRITICAL();
 
     return State::OK;
 }
@@ -247,13 +250,12 @@ Manager::State Manager::ReadMemory(uint16_t block, uint16_t page, uint16_t start
         return State::PARAM_ERR;
     }
 
-    uint32_t address = calcAddress(block, page, startByte);
-
     taskENTER_CRITICAL();
     SetBuffer(true);
+    SetWritePin(false);
     while (isBusy())
         ;
-    if (BufferCommand(address >> 12, OPCode::PAGE_DATA_READ) != HAL_OK)
+    if (BufferCommand(calcAddress(block, page), OPCode::PAGE_DATA_READ) != HAL_OK)
     {
         taskEXIT_CRITICAL();
         return State::QSPI_ERR;
@@ -261,12 +263,12 @@ Manager::State Manager::ReadMemory(uint16_t block, uint16_t page, uint16_t start
     while (isBusy())
         ;
 
-    if (Command_Rx_2DataLine(OPCode::FAST_READ_DUAL_OUTPUT, (uint8_t *)localBuffer, address & 0xFFF, size) != HAL_OK)
+    if (Command_Rx_2DataLine(OPCode::FAST_READ_DUAL_OUTPUT, buffer, startByte, size) != HAL_OK)
     {
         taskEXIT_CRITICAL();
         return State::QSPI_ERR;
     }
-    memcpy(buffer, localBuffer, size);
+
     taskEXIT_CRITICAL();
     return State::OK;
 }
