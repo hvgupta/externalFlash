@@ -125,6 +125,7 @@ class Manager
 
     const int subsections;           // divides up the 1024 blocks, Right now does not do anything
     uint32_t nextAddr[BLOCK_COUNT];  // gives the next byte
+    uint8_t localBuffer[MEM_PAGE_SIZE_BYTE];
 
     State WriteEnable() const;
     State WriteDisable() const;

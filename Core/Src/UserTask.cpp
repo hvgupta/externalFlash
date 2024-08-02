@@ -19,7 +19,7 @@ using namespace Core::Drivers;
 W25N01::Manager flash;
 uint8_t buffer[2048];
 uint16_t t_byte = 0, t_page = 0, t_block = 0;
-uint8_t hmm[2049];
+uint8_t hmm[4];
 int test      = 0;
 int change    = 0;
 uint32_t bruh = 0;
@@ -99,11 +99,11 @@ void writeTask(void *pvPara)
         }
         if (write)
         {
-            for (int i = 0; i < 2049; i++)
+            for (int i = 0; i < 4; i++)
             {
-                hmm[i] = t_block + 10;
+                hmm[i] = t_block + 'a';
             }
-            flash.WriteMemory(t_block, hmm, 2049) != W25N01::Manager::State::OK;
+            flash.WriteMemory(t_block, hmm, 4) != W25N01::Manager::State::OK;
             write -= 1;
         }
         someError = flash.getLast_ECC_page_failure(bruh);

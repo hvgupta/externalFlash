@@ -120,7 +120,7 @@ Manager::State Manager::init() const
         return State::QSPI_ERR;
     }
 
-    if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, RegisterAddress::CONFIGURATION_REGISTER, (uint8_t)0x10) != HAL_OK)
+    if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, RegisterAddress::CONFIGURATION_REGISTER, (uint8_t)0x18) != HAL_OK)
     {
         return State::QSPI_ERR;
     }
@@ -129,6 +129,7 @@ Manager::State Manager::init() const
     {
         return State::QSPI_ERR;
     }
+    ReadMemory(0, 0, 0, (uint8_t *)localBuffer, MEM_PAGE_SIZE_BYTE);
     return State::OK;
 }
 
@@ -179,17 +180,17 @@ Manager::State Manager::WriteMemory(uint16_t blockNum, uint8_t *data, uint16_t s
         }
     }
 
+    taskENTER_CRITICAL();
     if (WriteEnable() != State::OK)
     {
         return State::QSPI_ERR;
     }
-    taskENTER_CRITICAL();
     while (size)
     {
         while (isBusy())
             ;
 
-        if (Command_Tx_4DataLine(OPCode::RANDOM_QUAD_LOAD_PROGRAM_DATA, data, nextByte, sizeWriteNow) != HAL_OK)
+        if (Command_Tx_4DataLine(OPCode::QUAD_LOAD_PROGRAM_DATA, data, nextByte, sizeWriteNow) != HAL_OK)
         {
             taskEXIT_CRITICAL();
             return State::QSPI_ERR;
@@ -260,11 +261,12 @@ Manager::State Manager::ReadMemory(uint16_t block, uint16_t page, uint16_t start
     while (isBusy())
         ;
 
-    if (Command_Rx_2DataLine(OPCode::FAST_READ_DUAL_OUTPUT, buffer, address & 0xFFF, size) != HAL_OK)
+    if (Command_Rx_2DataLine(OPCode::FAST_READ_DUAL_OUTPUT, (uint8_t *)localBuffer, address & 0xFFF, size) != HAL_OK)
     {
         taskEXIT_CRITICAL();
         return State::QSPI_ERR;
     }
+    memcpy(buffer, localBuffer, size);
     taskEXIT_CRITICAL();
     return State::OK;
 }
