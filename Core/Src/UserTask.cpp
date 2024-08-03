@@ -17,7 +17,7 @@
 using namespace Core::Drivers;
 
 W25N01::Manager flash;
-uint8_t buffer[2048];
+uint8_t buffer[2050];
 uint16_t t_byte = 0, t_page = 0, t_block = 0;
 uint8_t hmm[2050];
 int test      = 0;
@@ -75,12 +75,12 @@ void readTask(void *pvPara)
             {
                 continue;
             }
-            for (int i = 0; i < 2048; i++)
+            for (int i = 0; i < 2050; i++)
             {
                 buffer[i] = 0;
             }
 
-            flash.ReadMemory(t_block, t_page, t_byte, buffer, 2048);
+            flash.ReadMemory(t_block, t_page, t_byte, buffer, 2050);
             read = 0;
         }
 

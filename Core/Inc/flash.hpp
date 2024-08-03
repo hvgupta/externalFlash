@@ -112,7 +112,7 @@ class Manager
 
     State getLast_ECC_page_failure(uint32_t &buffer) const;
 
-    bool CheckAddress(uint16_t block, uint16_t page, uint16_t startByte) const;
+    bool PassAddressCheck(uint16_t block, uint16_t page, uint16_t startByte) const;
 
     State SetWritePin(bool state) const;
 
@@ -136,6 +136,8 @@ class Manager
     State SetBuffer(bool state) const;
 
     void incrementAddr(uint16_t blockNum, uint16_t size);
+
+    bool PasslegalCheck(uint16_t block, uint16_t size, uint16_t &allowedSize) const;
 };
 
 inline uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte);
