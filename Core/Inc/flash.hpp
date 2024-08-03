@@ -18,7 +18,8 @@
 #define MEM_BLOCK_SIZE (64 * MEM_PAGE_SIZE)  // 128 KB: 64 pages
 
 /// Blocks count
-#define BLOCK_COUNT (MEM_FLASH_SIZE / MEM_BLOCK_SIZE)  // 1024 blocks
+#define BLOCK_COUNT (MEM_FLASH_SIZE / MEM_BLOCK_SIZE)  // 1023 blocks + 1 resevered
+#define RESERVE_BLOCK_BLOCK_ADDR 1023
 
 /// Sector count
 #define PAGE_COUNT (MEM_FLASH_SIZE / MEM_PAGE_SIZE)  // 65536 pages
@@ -31,9 +32,9 @@
 
 #define JEDECID_EXEPECTED 0xEFAA21
 
-#define blockAddrFilter 0xFFC0000
-#define pageAddrFilter 0x3F000
-#define byteAddrFilter 0x7FF
+#define blockAddrFilter(A) (A & 0xFFC0000) >> 18
+#define pageAddrFilter(A) (A & 0x3F000) >> 12
+#define byteAddrFilter(A) (A & 0x7FF)
 
 namespace Core
 {
@@ -102,7 +103,7 @@ class Manager
     State WriteMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *data, uint16_t size); /*TO DO: requires replacement*/
     State WriteMemory(uint16_t blockNumber, uint8_t *data, uint16_t size);                              // can be a string/array
 
-    State ReadMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *buffer, uint16_t size) const;  // has to be an array
+    State ReadMemory(uint32_t address, uint8_t *buffer, uint16_t size) const;  // has to be an array
 
     State EraseRange(uint32_t start_addr, uint32_t end_addr); /*TO DO: requires replacement*/
     State EraseBlock(uint32_t blockNUM);
@@ -112,11 +113,15 @@ class Manager
 
     State getLast_ECC_page_failure(uint32_t &buffer) const;
 
-    bool PassAddressCheck(uint16_t block, uint16_t page, uint16_t startByte) const;
+    bool PassAddressCheck(uint32_t address) const;
 
     State SetWritePin(bool state) const;
 
     State init() const;
+
+    bool PassLegalCheck(uint16_t block, uint16_t size, uint16_t &allowedSize) const;
+
+    uint32_t get_JEDECID() const;
 
     State BB_management(); /*#TO DO*/
 
@@ -125,23 +130,24 @@ class Manager
 
     const int subsections;           // divides up the 1024 blocks, Right now does not do anything
     uint32_t nextAddr[BLOCK_COUNT];  // gives the next byte
+    const uint16_t reservedBlock;
+    bool sudoMode;
+
+    void setSudoMode(bool mode);
 
     State WriteEnable() const;
     State WriteDisable() const;
-
-    uint32_t get_JEDECID() const;
 
     State BB_Entry(const uint16_t &badBlockAddr, const uint16_t &goodBlockAddr) const;
 
     State SetBuffer(bool state) const;
 
     void incrementAddr(uint16_t blockNum, uint16_t size);
-
-    bool PasslegalCheck(uint16_t block, uint16_t size, uint16_t &allowedSize) const;
+    inline uint16_t pageAligned_calcAddress(uint16_t block, uint16_t page) const;
 };
 
 inline uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte);
-inline uint16_t calcAddress(uint16_t block, uint16_t page);
+// inline uint16_t calcAddress(uint16_t block, uint16_t page);
 
 bool isBusy();
 

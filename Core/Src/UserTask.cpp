@@ -80,7 +80,7 @@ void readTask(void *pvPara)
                 buffer[i] = 0;
             }
 
-            flash.ReadMemory(t_block, t_page, t_byte, buffer, 2050);
+            flash.ReadMemory(W25N01::calcAddress(t_block, t_page, t_byte), buffer, 2050);
             read = 0;
         }
 
