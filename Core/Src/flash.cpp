@@ -13,6 +13,8 @@ namespace Drivers
 {
 namespace W25N01
 {
+uint8_t localBuffer[PAGE_SIZE_BYTE];
+
 inline uint16_t Manager::pageAligned_calcAddress(uint16_t block, uint16_t page) const { return block << 6 | page; }
 inline uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte) { return (block << 6 | page) << 12 | byte; }
 
@@ -103,7 +105,7 @@ Manager::State Manager::SetBuffer(bool state) const
     return State::OK;
 }
 
-Manager::Manager(uint16_t subsec) : subsections(subsec), reservedBlock(RESERVE_BLOCK_BLOCK_ADDR), sudoMode(false)
+Manager::Manager(uint16_t subsec) : subsections(subsec), reservedBlock(RESERVE_BLOCK_BLOCKADDR), sudoMode(false)
 {
     for (unsigned int i = 0; i < BLOCK_COUNT; i++)
     {
@@ -143,10 +145,10 @@ bool Manager::PassLegalCheck(uint16_t block, uint16_t size, uint16_t &allowedSiz
     }
     uint16_t curPage = pageAddrFilter(nextAddr[block]);
     uint16_t curByte = byteAddrFilter(nextAddr[block]);
-    if (curByte + size >= MEM_PAGE_SIZE)
+    if (curByte + size >= PAGE_SIZE_BYTE)
     {
-        allowedSize             = MEM_PAGE_SIZE_BYTE - curByte;
-        uint16_t numPagesNeeded = std::ceil(((float)size - allowedSize) / ((float)MEM_PAGE_SIZE_BYTE));
+        allowedSize             = PAGE_SIZE_BYTE - curByte;
+        uint16_t numPagesNeeded = std::ceil(((float)size - allowedSize) / ((float)PAGE_SIZE_BYTE));
         if (curPage + numPagesNeeded >= PAGE_PER_BLOCK)
         {
             return false;
@@ -202,6 +204,7 @@ Manager::State Manager::WriteMemory(uint16_t curBlock, uint8_t *data, uint16_t s
             taskEXIT_CRITICAL();
             return State::QSPI_ERR;
         }
+
         while (isBusy())
             ;
         if (Command_Tx_4DataLine(OPCode::QUAD_LOAD_PROGRAM_DATA, data, nextByte, sizeWriteNow) != HAL_OK)
@@ -225,62 +228,67 @@ Manager::State Manager::WriteMemory(uint16_t curBlock, uint8_t *data, uint16_t s
 
         curPage      = pageAddrFilter(nextAddr[curBlock]);
         nextByte     = byteAddrFilter(nextAddr[curBlock]);
-        sizeWriteNow = min(size, MEM_PAGE_SIZE_BYTE - nextByte);
+        sizeWriteNow = min(size, PAGE_SIZE_BYTE - nextByte);
     }
 
     return State::OK;
 }
 
-// Manager::State Manager::WriteMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *data, uint16_t size)
-// {
-//     if (!PassAddressCheck(block, page, startByte))
-//     {
-//         return State::PARAM_ERR;
-//     }
-//     uint32_t pageByteAddr = calcAddress(0, page, startByte);
-//     if (nextAddr[block] == pageByteAddr)
-//     {
-//         return WriteMemory(block, data, size);
-//     }
-//     else if (nextAddr[block] < pageByteAddr)
-//     {
-//         nextAddr[block] = pageByteAddr;
-//         return WriteMemory(block, data, size);
-//     }
+Manager::State Manager::reWrite_WithinBlock(uint32_t address, uint8_t *data, uint16_t size)
+{
+    if (!PassAddressCheck(address))
+    {
+        return State::PARAM_ERR;
+    }
+    uint16_t curBlock  = blockAddrFilter(address);
+    uint16_t curPage   = pageAddrFilter(address);
+    uint16_t startByte = byteAddrFilter(address);
 
-//     uint16_t bytesWritten = size;
-//     if (startByte + size >= MEM_PAGE_SIZE_BYTE)
-//     {
-//         bytesWritten                 = MEM_PAGE_SIZE_BYTE - startByte;
-//         uint16_t numberOfPagesNeeded = std::ceil(((float)size - bytesWritten) / ((float)MEM_PAGE_SIZE_BYTE));
-//         if (page + numberOfPagesNeeded >= PAGE_PER_BLOCK)
-//         {
-//             return State::PARAM_ERR;
-//         }
-//     }
-//     uint8_t localBuffer[2048];
-// }
+    uint32_t pageByteAddr = calcAddress(0, curPage, startByte);
+    if (nextAddr[curBlock] == pageByteAddr)
+    {
+        return WriteMemory(curBlock, data, size);
+    }
+    else if (nextAddr[curBlock] < pageByteAddr)
+    {
+        nextAddr[curBlock] = pageByteAddr;
+        return WriteMemory(curBlock, data, size);
+    }
+    State state;
+    state = EraseRange_WithinBlock(address, nextAddr[curBlock]);
+    if (state != State::OK)
+    {
+        return state;
+    }
+
+    state = WriteMemory(curBlock, data, size);
+    return state;
+}
 
 bool Manager::PassAddressCheck(uint32_t address) const
 {
     uint16_t curBlock = blockAddrFilter(address);
-    if (curBlock >= BLOCK_COUNT)
+    if (curBlock >= BLOCK_COUNT)  // checks if the block number being accessed is outside the range
     {
         return false;
     }
-    if (curBlock == reservedBlock && !sudoMode)
+    if (curBlock == reservedBlock && !sudoMode)  // checks if the block being access is the reserved block
     {
         return false;
     }
 
     uint16_t curPage = pageAddrFilter(address);
-    if (curPage >= PAGE_PER_BLOCK)
+    if (curPage >= PAGE_PER_BLOCK)  // checks if the page being accessed is out of range
     {
         return false;
     }
 
-    uint16_t curByte = byteAddrFilter(address);
-    if (curByte >= MEM_PAGE_SIZE_BYTE)
+    uint16_t curByte = byteAddrFilter(address);  // checks if the byte being accessed is out of range
+    if (curByte >= PAGE_SIZE_BYTE)
+    {
+        return false;
+    }
+    if (address & 0x800)  // checks if the byte falls under the ECC range
     {
         return false;
     }
@@ -295,9 +303,9 @@ Manager::State Manager::ReadMemory(uint32_t address, uint8_t *buffer, uint16_t s
         return State::PARAM_ERR;
     }
     uint16_t curBlock    = blockAddrFilter(address);
-    uint16_t curPage     = blockAddrFilter(address);
+    uint16_t curPage     = pageAddrFilter(address);
     uint16_t startByte   = byteAddrFilter(address);
-    uint16_t sizeReadNow = min(size, MEM_PAGE_SIZE_BYTE - startByte);
+    uint16_t sizeReadNow = min(size, PAGE_SIZE_BYTE - startByte);
 
     while (size)
     {
@@ -310,21 +318,22 @@ Manager::State Manager::ReadMemory(uint32_t address, uint8_t *buffer, uint16_t s
             taskEXIT_CRITICAL();
             return State::QSPI_ERR;
         }
+
         while (isBusy())
             ;
-
         if (Command_Rx_2DataLine(OPCode::FAST_READ_DUAL_OUTPUT, buffer, startByte, sizeReadNow) != HAL_OK)
         {
             taskEXIT_CRITICAL();
             return State::QSPI_ERR;
         }
+
         taskEXIT_CRITICAL();
         size -= sizeReadNow;
         buffer += sizeReadNow;
 
         curPage += 1;
         startByte   = 0;
-        sizeReadNow = min(size, MEM_PAGE_SIZE_BYTE - startByte);
+        sizeReadNow = min(size, PAGE_SIZE_BYTE - startByte);
     }
 
     return State::OK;
@@ -357,7 +366,129 @@ Manager::State Manager::EraseBlock(uint32_t blockNUM)
     return State::OK;
 }
 
-// Manager::State Manager::EraseRange() {}
+Manager::State Manager::EraseRange_WithinBlock(uint32_t startAddress, uint32_t endAddress)
+{
+    if (startAddress >= endAddress)
+    {
+        return State::PARAM_ERR;
+    }
+    if (!PassAddressCheck(startAddress) || !PassAddressCheck(endAddress))
+    {
+        return State::PARAM_ERR;
+    }
+    if (blockAddrFilter(startAddress) != blockAddrFilter(endAddress))
+    {
+        return State::PARAM_ERR;
+    }
+
+    State state;
+    uint32_t curBlock = blockAddrFilter(startAddress);
+    uint8_t pagesAffected[2];
+    pagesAffected[0] = pageAddrFilter(startAddress);
+    pagesAffected[1] = pageAddrFilter(endAddress);
+
+    state = SetWritePin(true);
+    if (state != State::OK)
+    {
+        return state;
+    }
+    setSudoMode(true);
+    state = EraseBlock(RESERVE_BLOCK_BLOCKADDR);
+    if (state != State::OK)
+    {
+        return state;
+    }
+    uint32_t oldSize = nextAddr[curBlock];
+
+    for (uint8_t pageIndex = 0; pageIndex < PAGE_PER_BLOCK; pageIndex++)
+    {
+        uint16_t size  = 0;
+        uint16_t start = 0;
+        if (pageIndex == pagesAffected[0] && pageIndex == pagesAffected[1])
+        {
+            size  = byteAddrFilter(startAddress);
+            start = 0;
+            if (size != 0)
+            {
+                state = ReadMemory(calcAddress(curBlock, pageIndex, start), localBuffer, size);
+                if (state != State::OK)
+                {
+                    return state;
+                }
+                state = WriteMemory((uint16_t)RESERVE_BLOCK_BLOCKADDR, localBuffer, size);
+                if (state != State::OK)
+                {
+                    return state;
+                }
+            }
+
+            size  = PAGE_SIZE_BYTE - byteAddrFilter(endAddress);
+            start = byteAddrFilter(endAddress);
+
+            if (size != 0)
+            {
+                state = ReadMemory(calcAddress(curBlock, pageIndex, start), localBuffer, size);
+                if (state != State::OK)
+                {
+                    return state;
+                }
+                state = WriteMemory((uint16_t)RESERVE_BLOCK_BLOCKADDR, localBuffer, size);
+                if (state != State::OK)
+                {
+                    return state;
+                }
+            }
+            continue;
+        }
+        else if (pageIndex == pagesAffected[0])
+        {
+            size = byteAddrFilter(startAddress);
+        }
+        else if (pageIndex == pagesAffected[1])
+        {
+            size  = PAGE_SIZE_BYTE - byteAddrFilter(endAddress);
+            start = byteAddrFilter(endAddress);
+        }
+        else
+        {
+            size = PAGE_SIZE_BYTE;
+        }
+        if (size != 0)
+        {
+            State state;
+            state = ReadMemory(calcAddress(curBlock, pageIndex, start), localBuffer, size);
+            if (state != State::OK)
+            {
+                return state;
+            }
+            state = WriteMemory((uint16_t)RESERVE_BLOCK_BLOCKADDR, localBuffer, size);
+            if (state != State::OK)
+            {
+                return state;
+            }
+        }
+    }
+    EraseBlock(curBlock);
+
+    for (uint8_t i = 0; i < PAGE_PER_BLOCK; i++)
+    {
+        state = ReadMemory(calcAddress(RESERVE_BLOCK_BLOCKADDR, i, 0), localBuffer, 2048);
+        if (state != State::OK)
+        {
+            return state;
+        }
+        state = WriteMemory(curBlock, localBuffer, 2048);
+        if (state != State::OK)
+        {
+            return state;
+        }
+    }
+    state = EraseBlock(RESERVE_BLOCK_BLOCKADDR);
+    setSudoMode(false);
+
+    nextAddr[curBlock] = oldSize - (min(endAddress, oldSize) - startAddress);
+    return state;
+}
 
 Manager::State Manager::EraseChip()
 {
@@ -429,9 +560,9 @@ Manager::State Manager::getLast_ECC_page_failure(uint32_t &buffer) const
 
 Manager::State Manager::BB_management()
 {
-    uint8_t data[MEM_PAGE_SIZE_BYTE];
-    uint8_t buffer[MEM_PAGE_SIZE_BYTE];
-    for (int a = 0; a < MEM_PAGE_SIZE_BYTE; a++)
+    uint8_t data[PAGE_SIZE_BYTE];
+    uint8_t buffer[PAGE_SIZE_BYTE];
+    for (int a = 0; a < PAGE_SIZE_BYTE; a++)
     {
         data[a] = a;
     }
@@ -440,14 +571,14 @@ Manager::State Manager::BB_management()
     for (unsigned int i = 0; i < BLOCK_COUNT; i++)
     {
         EraseBlock(i);
-        WriteMemory(i, data, MEM_PAGE_SIZE_BYTE);
+        WriteMemory(i, data, PAGE_SIZE_BYTE);
         uint32_t addr = 0;
         State result  = getLast_ECC_page_failure(addr);
         if (result == State::ECC_ERR && (addr >> 18) == (uint32_t)i)
         {
             badBlocks[j++] = i;
         }
-        ReadMemory(calcAddress(i, 0, 0), buffer, MEM_PAGE_SIZE_BYTE);
+        ReadMemory(calcAddress(i, 0, 0), buffer, PAGE_SIZE_BYTE);
     }
     for (unsigned int i = 0; i < j; i++)
     {
@@ -464,7 +595,7 @@ void Manager::incrementAddr(uint16_t blockNum, uint16_t size)
     uint16_t pageNum  = pageAddrFilter(nextAddr[blockNum]);
     uint16_t nextByte = byteAddrFilter(nextAddr[blockNum]);
     nextByte += size;
-    if (nextByte >= MEM_PAGE_SIZE_BYTE)
+    if (nextByte >= PAGE_SIZE_BYTE)
     {
         nextByte = 0;
         pageNum += 1;

@@ -9,26 +9,26 @@
 // #define DEVICE_ID 0xAA21
 
 /// Mem size in KB
-#define MEM_FLASH_SIZE 131072U  // 128MB : 128*2^(10)KB
+#define FLASH_SIZE_BYTE 131072U  // 128MB : 128*2^(10)KB
 
 /// page size in KB
-#define MEM_PAGE_SIZE 2U  // 2 Kbyte : 1 page
+#define PAGE_SIZE_KBYTE 2U  // 2 Kbyte : 1 page
 
 /// Mem block size in KB
-#define MEM_BLOCK_SIZE (64 * MEM_PAGE_SIZE)  // 128 KB: 64 pages
+#define BLOCK_SIZE_KBYTE (64 * PAGE_SIZE_KBYTE)  // 128 KB: 64 pages
 
 /// Blocks count
-#define BLOCK_COUNT (MEM_FLASH_SIZE / MEM_BLOCK_SIZE)  // 1023 blocks + 1 resevered
-#define RESERVE_BLOCK_BLOCK_ADDR 1023
+#define BLOCK_COUNT (FLASH_SIZE_BYTE / BLOCK_SIZE_KBYTE)  // 1023 blocks + 1 resevered
+#define RESERVE_BLOCK_BLOCKADDR 1023
 
 /// Sector count
-#define PAGE_COUNT (MEM_FLASH_SIZE / MEM_PAGE_SIZE)  // 65536 pages
+#define PAGE_COUNT (FLASH_SIZE_BYTE / PAGE_SIZE_KBYTE)  // 65536 pages
 
 // the number of pages per block
 #define PAGE_PER_BLOCK (PAGE_COUNT / BLOCK_COUNT)  // 64 pages per block
 
-#define MEM_PAGE_SIZE_BYTE 2048
-#define MEM_ECC_SIZE_BYTE 64
+#define PAGE_SIZE_BYTE 2048
+#define ECC_SIZE_BYTE 64
 
 #define JEDECID_EXEPECTED 0xEFAA21
 
@@ -100,12 +100,12 @@ class Manager
     State WriteStatusReg(uint8_t data, RegisterAddress reg_addr) const;    // can be literal
     State ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr) const;  // has to be a refernce
 
-    State WriteMemory(uint16_t block, uint16_t page, uint16_t startByte, uint8_t *data, uint16_t size); /*TO DO: requires replacement*/
-    State WriteMemory(uint16_t blockNumber, uint8_t *data, uint16_t size);                              // can be a string/array
+    State reWrite_WithinBlock(uint32_t address, uint8_t *data, uint16_t size); /*TO DO: requires replacement*/
+    State WriteMemory(uint16_t blockNumber, uint8_t *data, uint16_t size);     // can be a string/array
 
     State ReadMemory(uint32_t address, uint8_t *buffer, uint16_t size) const;  // has to be an array
 
-    State EraseRange(uint32_t start_addr, uint32_t end_addr); /*TO DO: requires replacement*/
+    State EraseRange_WithinBlock(uint32_t start_addr, uint32_t end_addr); /*TO DO: requires replacement*/
     State EraseBlock(uint32_t blockNUM);
     State EraseChip();
 

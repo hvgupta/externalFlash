@@ -25,7 +25,7 @@ int change    = 0;
 uint32_t bruh = 0;
 W25N01::Manager::State someError;
 int trigger = 0;
-int read = 0, write = 0;
+int read = 0, write = 0, erase = 0;
 int test1, test2;
 
 int numToStr(int num, uint8_t buffer[], int size)
@@ -112,6 +112,25 @@ void writeTask(void *pvPara)
     }
 }
 
+void eraseTask(void *pvPara)
+{
+    while (true)
+    {
+        if (erase)
+        {
+            if (W25N01::isBusy())
+            {
+                continue;
+            }
+            flash.EraseRange_WithinBlock(W25N01::calcAddress(t_block, t_page, t_byte + 2045), W25N01::calcAddress(t_block, t_page + 1, t_byte + 10));
+
+            erase = 0;
+        }
+
+        vTaskDelay(1);
+    }
+}
+
 /**
  * @brief Create user tasks
  */
@@ -121,6 +140,8 @@ StackType_t uxReadTaskStack[configMINIMAL_STACK_SIZE];
 StaticTask_t xReadTaskTCB;
 StackType_t uxWriteTaskStack[configMINIMAL_STACK_SIZE];
 StaticTask_t xWriteTaskTCB;
+StackType_t uxEraseTaskStack[configMINIMAL_STACK_SIZE];
+StaticTask_t xEraseTaskTCB;
 void startUserTasks()
 {
     flash.init();
@@ -128,4 +149,5 @@ void startUserTasks()
     // xTaskCreateStatic(blink, "blink", configMINIMAL_STACK_SIZE, NULL, 0, uxBlinkTaskStack, &xBlinkTaskTCB);
     xTaskCreateStatic(readTask, "readTask", configMINIMAL_STACK_SIZE, NULL, 0, uxReadTaskStack, &xReadTaskTCB);
     xTaskCreateStatic(writeTask, "writeTask", configMINIMAL_STACK_SIZE, NULL, 0, uxWriteTaskStack, &xWriteTaskTCB);
+    xTaskCreateStatic(eraseTask, "eraseTask", configMINIMAL_STACK_SIZE, NULL, 0, uxEraseTaskStack, &xEraseTaskTCB);
 }
