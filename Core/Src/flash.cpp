@@ -21,6 +21,18 @@ inline uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte) { retu
 inline uint32_t min(uint32_t a, uint32_t b) { return a < b ? a : b; }
 int lastAddr = 0;
 
+inline uint32_t ADDR_STORE_START(uint16_t blockNUM)
+{
+    uint16_t byteAddr = blockNUM * 4;
+    uint16_t pageAddr = PAGE_COUNT - 2;
+    if (byteAddr >= PAGE_SIZE_BYTE)
+    {
+        byteAddr = 0;
+        pageAddr += 1;
+    }
+    return (RESERVE_BLOCK_BLOCKADDR << 18) | (pageAddr << 12) | byteAddr;
+}
+
 bool isBusy()
 {
     uint8_t status;
@@ -113,7 +125,7 @@ Manager::Manager(uint16_t subsec) : subsections(subsec), reservedBlock(RESERVE_B
     }
 }
 
-Manager::State Manager::init() const
+Manager::State Manager::init()
 {
     if (PureCommand(OPCode::DEVICE_RESET) != HAL_OK)
     {
@@ -133,6 +145,25 @@ Manager::State Manager::init() const
     {
         return State::QSPI_ERR;
     }
+    State state;
+    uint8_t buffer[4] = {0};
+    setSudoMode(true);
+    for (int i = 0; i < BLOCK_COUNT - 1; i++)
+    {
+        state = ReadMemory(ADDR_STORE_START(i), buffer, 4);
+        if (state != State::OK)
+        {
+            i--;
+            continue;
+        }
+        if (buffer[0] == 0xFF)
+        {
+            nextAddr[i] = 0;
+            continue;
+        }
+        nextAddr[i] = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+    }
+    setSudoMode(false);
     return State::OK;
 }
 
@@ -231,6 +262,7 @@ Manager::State Manager::WriteMemory(uint16_t curBlock, uint8_t *data, uint16_t s
         sizeWriteNow = min(size, PAGE_SIZE_BYTE - nextByte);
     }
 
+    saveAddr();
     return State::OK;
 }
 
@@ -339,7 +371,7 @@ Manager::State Manager::ReadMemory(uint32_t address, uint8_t *buffer, uint16_t s
     return State::OK;
 }
 
-Manager::State Manager::EraseBlock(uint32_t blockNUM)
+Manager::State Manager::EraseBlock(uint32_t blockNUM, bool canSaveAddr)
 {
     if (blockNUM >= BLOCK_COUNT || (blockNUM == reservedBlock && !sudoMode))
     {
@@ -363,6 +395,10 @@ Manager::State Manager::EraseBlock(uint32_t blockNUM)
     }
 
     nextAddr[blockNUM] = 0;
+    if (canSaveAddr)
+    {
+        saveAddr();
+    }
     return State::OK;
 }
 
@@ -393,7 +429,7 @@ Manager::State Manager::EraseRange_WithinBlock(uint32_t startAddress, uint32_t e
         return state;
     }
     setSudoMode(true);
-    state = EraseBlock(RESERVE_BLOCK_BLOCKADDR);
+    state = EraseBlock(RESERVE_BLOCK_BLOCKADDR, false);
     if (state != State::OK)
     {
         return state;
@@ -483,7 +519,7 @@ Manager::State Manager::EraseRange_WithinBlock(uint32_t startAddress, uint32_t e
             return state;
         }
     }
-    state = EraseBlock(RESERVE_BLOCK_BLOCKADDR);
+    state = EraseBlock(RESERVE_BLOCK_BLOCKADDR, false);
     setSudoMode(false);
 
     nextAddr[curBlock] = oldSize - (min(endAddress, oldSize) - startAddress);
@@ -504,7 +540,7 @@ Manager::State Manager::EraseChip()
         {
             setSudoMode(true);
         }
-        State state = EraseBlock(i);
+        State state = EraseBlock(i, false);
         switch (state)
         {
         default:
@@ -514,11 +550,12 @@ Manager::State Manager::EraseChip()
         }
         if (sudoMode)
         {
-            sudoMode = false;
+            setSudoMode(false);
         }
         taskEXIT_CRITICAL();
     }
 
+    saveAddr();
     return State::OK;
 }
 
@@ -603,7 +640,56 @@ void Manager::incrementAddr(uint16_t blockNum, uint16_t size)
     nextAddr[blockNum] = calcAddress(0, pageNum, nextByte);
 }
 
-void Manager::setSudoMode(bool mode) { sudoMode = mode; }
+void Manager::setSudoMode(bool mode)
+{
+    sudoMode = mode;
+    if (mode)
+    {
+        taskENTER_CRITICAL();
+    }
+    else
+    {
+        taskEXIT_CRITICAL();
+    }
+}
+
+void Manager::saveAddr()
+{
+    State state;
+    setSudoMode(true);
+    EraseBlock(RESERVE_BLOCK_BLOCKADDR, false);
+    for (uint16_t i = 0; i < BLOCK_COUNT; i++)
+    {
+        if (i == RESERVE_BLOCK_BLOCKADDR)
+        {
+            continue;
+        }
+        uint32_t curAddr = nextAddr[i];
+        uint8_t addr[4]  = {(curAddr & 0xFF000000) >> 24, (curAddr & 0xFF0000) >> 16, (curAddr & 0xFF00) >> 8, (curAddr & 0xFF)};
+        taskENTER_CRITICAL();
+        if (WriteEnable() != State::OK)
+        {
+            taskEXIT_CRITICAL();
+            return;
+        }
+
+        while (isBusy())
+            ;
+        uint16_t byteAddr = byteAddrFilter(ADDR_STORE_START(i));
+        if (Command_Tx_4DataLine(OPCode::QUAD_LOAD_PROGRAM_DATA, addr, byteAddr, 4) != HAL_OK)
+        {
+            return;
+        }
+        uint16_t blockAddr = blockAddrFilter(ADDR_STORE_START(i));
+        while (isBusy())
+            ;
+        if (BufferCommand(blockAddr, OPCode::PROGRAM_EXECUTE) != HAL_OK)
+        {
+            return;
+        }
+    }
+    setSudoMode(false);
+}
 
 }  // namespace W25N01
 }  // namespace Drivers

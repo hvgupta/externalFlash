@@ -36,12 +36,16 @@
 #define pageAddrFilter(A) (A & 0x3F000) >> 12
 #define byteAddrFilter(A) (A & 0x7FF)
 
+// #define ADDR_STORE_START(blockNUM) (RESERVE_BLOCK_BLOCKADDR << 18 | (PAGE_COUNT - 2) << 12 | blockNUM * 4)
+
 namespace Core
 {
 namespace Drivers
 {
 namespace W25N01
 {
+
+inline uint32_t ADDR_STORE_START(uint16_t blockNUM);
 
 static constexpr uint8_t MANUFACTURER_ID = 0xEF;
 static constexpr uint16_t DEVICE_ID      = 0xAA21;
@@ -106,7 +110,7 @@ class Manager
     State ReadMemory(uint32_t address, uint8_t *buffer, uint16_t size) const;  // has to be an array
 
     State EraseRange_WithinBlock(uint32_t start_addr, uint32_t end_addr); /*TO DO: requires replacement*/
-    State EraseBlock(uint32_t blockNUM);
+    State EraseBlock(uint32_t blockNUM = RESERVE_BLOCK_BLOCKADDR, bool canSaveAddr = true);
     State EraseChip();
 
     State BB_LUT(uint8_t *buffer) const;
@@ -117,7 +121,7 @@ class Manager
 
     State SetWritePin(bool state) const;
 
-    State init() const;
+    State init();
 
     bool PassLegalCheck(uint16_t block, uint16_t size, uint16_t &allowedSize) const;
 
@@ -144,6 +148,8 @@ class Manager
 
     void incrementAddr(uint16_t blockNum, uint16_t size);
     inline uint16_t pageAligned_calcAddress(uint16_t block, uint16_t page) const;
+
+    void saveAddr();
 };
 
 inline uint32_t calcAddress(uint16_t block, uint16_t page, uint16_t byte);
