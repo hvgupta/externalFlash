@@ -100,7 +100,7 @@ enum RegisterAddress : uint8_t
  * @param subsections: the number of subsections that the memory is divided into (not implemented)
  * @param nextAddr: The address at which data can be written for each block
  * @param reservedBlock: The block number that is reserved for replacement commands
- * @param sudoMode: This mode is only for the replacement commands and is managed by the class
+ * @param kernelMode: This mode is only for the replacement commands and is managed by the class
  * @param isInited: This is to check if the `init` function has been called
  */
 class Manager
@@ -229,7 +229,7 @@ class Manager
     const int subsections;           // divides up the 1024 blocks, Right now does not do anything
     uint32_t nextAddr[BLOCK_COUNT];  // gives the next byte
     const uint16_t reservedBlock;
-    bool sudoMode;
+    bool kernelMode;
     bool isInited;
 
     /**
@@ -243,7 +243,7 @@ class Manager
     /**
      * @brief This function is responsible to go into sudo mode, and only in this mode can edit the reserve block
      */
-    void setSudoMode(bool mode);
+    void setKernelMode(bool mode);
 
     /**
      * @brief sets the write enable latch

@@ -121,7 +121,7 @@ Manager::State Manager::SetBufferMode(bool state) const
     return State::OK;
 }
 
-Manager::Manager(uint16_t subsec) : subsections(subsec), reservedBlock(RESERVE_BLOCK_BLOCKADDR), sudoMode(false), isInited(false)
+Manager::Manager(uint16_t subsec) : subsections(subsec), reservedBlock(RESERVE_BLOCK_BLOCKADDR), kernelMode(false), isInited(false)
 {
     for (unsigned int i = 0; i < BLOCK_COUNT; i++)
     {
@@ -152,7 +152,7 @@ Manager::State Manager::init()
     isInited = true;
     State state;
     uint8_t buffer[4] = {0};
-    setSudoMode(true);
+    setKernelMode(true);
     for (int i = 0; i < BLOCK_COUNT - 1; i++)
     {
         state = ReadMemory(ADDR_STORE_START(i), buffer, 4);
@@ -168,14 +168,14 @@ Manager::State Manager::init()
         }
         nextAddr[i] = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
     }
-    setSudoMode(false);
+    setKernelMode(false);
     return State::OK;
 }
 
 bool Manager::PassLegalCheck(uint16_t block, uint16_t size, uint16_t &allowedSize) const
 {
     allowedSize = size;
-    if (block >= BLOCK_COUNT || (block == reservedBlock && !sudoMode))
+    if (block >= BLOCK_COUNT || (block == reservedBlock && !kernelMode))
     {
         return false;
     }
@@ -325,7 +325,7 @@ bool Manager::PassAddressCheck(uint32_t address) const
     {
         return false;
     }
-    if (curBlock == reservedBlock && !sudoMode)  // checks if the block being access is the reserved block
+    if (curBlock == reservedBlock && !kernelMode)  // checks if the block being access is the reserved block
     {
         return false;
     }
@@ -402,7 +402,7 @@ Manager::State Manager::EraseBlock(uint32_t blockNUM, bool canSaveAddr)
     {
         return State::OBJECT_NOT_INIT;
     }
-    if (blockNUM >= BLOCK_COUNT || (blockNUM == reservedBlock && !sudoMode))
+    if (blockNUM >= BLOCK_COUNT || (blockNUM == reservedBlock && !kernelMode))
     {
         return State::PARAM_ERR;
     }
@@ -461,7 +461,7 @@ Manager::State Manager::EraseRange_WithinBlock(uint32_t startAddress, uint32_t e
     {
         return state;
     }
-    setSudoMode(true);
+    setKernelMode(true);
     state = EraseBlock(RESERVE_BLOCK_BLOCKADDR, false);
     if (state != State::OK)
     {
@@ -553,7 +553,7 @@ Manager::State Manager::EraseRange_WithinBlock(uint32_t startAddress, uint32_t e
         }
     }
     state = EraseBlock(RESERVE_BLOCK_BLOCKADDR, false);
-    setSudoMode(false);
+    setKernelMode(false);
 
     nextAddr[curBlock] = oldSize - (min(endAddress, oldSize) - startAddress);
     return state;
@@ -575,7 +575,7 @@ Manager::State Manager::EraseChip()
         taskENTER_CRITICAL();
         if (i == reservedBlock)
         {
-            setSudoMode(true);
+            setKernelMode(true);
         }
         State state = EraseBlock(i, false);
         switch (state)
@@ -585,9 +585,9 @@ Manager::State Manager::EraseChip()
         case State::OK:
             continue;
         }
-        if (sudoMode)
+        if (kernelMode)
         {
-            setSudoMode(false);
+            setKernelMode(false);
         }
         taskEXIT_CRITICAL();
     }
@@ -688,9 +688,9 @@ void Manager::incrementAddr(uint16_t blockNum, uint16_t size)
     nextAddr[blockNum] = calcAddress(0, pageNum, nextByte);
 }
 
-void Manager::setSudoMode(bool mode)
+void Manager::setKernelMode(bool mode)
 {
-    sudoMode = mode;
+    kernelMode = mode;
     if (mode)
     {
         taskENTER_CRITICAL();
@@ -712,12 +712,12 @@ void Manager::saveAddr()
             continue;
         }
 
-        setSudoMode(true);
+        setKernelMode(true);
         uint32_t curAddr = nextAddr[i];
         uint8_t addr[4]  = {(curAddr & 0xFF000000) >> 24, (curAddr & 0xFF0000) >> 16, (curAddr & 0xFF00) >> 8, (curAddr & 0xFF)};
         if (WriteEnable() != State::OK)
         {
-            setSudoMode(false);
+            setKernelMode(false);
             return;
         }
 
@@ -727,7 +727,7 @@ void Manager::saveAddr()
         uint16_t byteAddr  = byteAddrFilter(storeAddr);
         if (Command_Tx_4DataLine(OPCode::QUAD_LOAD_PROGRAM_DATA, addr, byteAddr, 4) != HAL_OK)
         {
-            setSudoMode(false);
+            setKernelMode(false);
             return;
         }
         uint16_t pageAddr = storeAddr >> 12;
@@ -735,10 +735,10 @@ void Manager::saveAddr()
             ;
         if (BufferCommand(pageAddr, OPCode::PROGRAM_EXECUTE) != HAL_OK)
         {
-            setSudoMode(false);
+            setKernelMode(false);
             return;
         }
-        setSudoMode(false);
+        setKernelMode(false);
     }
 }
 
