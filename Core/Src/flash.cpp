@@ -636,6 +636,8 @@ Manager::State Manager::getLast_ECC_page_failure(uint32_t &buffer) const
     return State::OK;
 }
 
+Manager::State Manager::BB_Entry(const uint16_t &badBlockAddr, const uint16_t &goodBlockAddr) const { return State::OK; }
+
 Manager::State Manager::BB_management()
 {
     if (!isInited)
@@ -648,12 +650,12 @@ Manager::State Manager::BB_management()
     {
         data[a] = a;
     }
-    uint16_t badBlocks[20], j    = 0;
-    uint16_t goodBlocks[1024], k = 0;
+    uint16_t badBlocks[20] = {0}, j = 0;
+    uint16_t goodBlocks[1024] = {0}, k = 0;
     for (unsigned int i = 0; i < BLOCK_COUNT; i++)
     {
-        EraseBlock(i);
-        WriteMemory(i, data, PAGE_SIZE_BYTE);
+        Command_Tx_4DataLine(OPCode::QUAD_LOAD_PROGRAM_DATA, data, 0, PAGE_SIZE_BYTE);
+        BufferCommand(pageAligned_calcAddress(i, 0), OPCode::PROGRAM_EXECUTE);
         uint32_t addr = 0;
         State result  = getLast_ECC_page_failure(addr);
         if (result == State::ECC_ERR && (addr >> 18) == (uint32_t)i)
@@ -661,6 +663,7 @@ Manager::State Manager::BB_management()
             badBlocks[j++] = i;
         }
         ReadMemory(calcAddress(i, 0, 0), buffer, PAGE_SIZE_BYTE);
+        EraseBlock(i, false);
     }
     for (unsigned int i = 0; i < j; i++)
     {
