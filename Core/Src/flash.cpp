@@ -50,8 +50,12 @@ uint32_t Manager::get_JEDECID() const
 
 Manager::State Manager::SetWritePin(bool state) const
 {
+    if (!isInited)
+    {
+        return State::OBJECT_NOT_INIT;
+    }
     uint8_t regData = 0;
-    if (ReadStatusReg(&regData, RegisterAddress::STATUS_REGISTER) != State::OK)
+    if (ReadStatusReg(RegisterAddress::STATUS_REGISTER, &regData) != State::OK)
     {
         return State::QSPI_ERR;
     }
@@ -89,12 +93,12 @@ Manager::State Manager::WriteDisable() const
     return State::OK;
 }
 
-Manager::State Manager::SetBuffer(bool state) const
+Manager::State Manager::SetBufferMode(bool state) const
 {
     while (isBusy())
         ;
     uint8_t regData = 0;
-    if (ReadStatusReg(&regData, RegisterAddress::CONFIGURATION_REGISTER) != State::OK)
+    if (ReadStatusReg(RegisterAddress::CONFIGURATION_REGISTER, &regData) != State::OK)
     {
         return State::QSPI_ERR;
     }
@@ -110,14 +114,14 @@ Manager::State Manager::SetBuffer(bool state) const
     {
         regData &= 0xF7;
     }
-    if (WriteStatusReg(regData, RegisterAddress::CONFIGURATION_REGISTER) != State::OK)
+    if (WriteStatusReg(RegisterAddress::CONFIGURATION_REGISTER, regData) != State::OK)
     {
         return State::QSPI_ERR;
     }
     return State::OK;
 }
 
-Manager::Manager(uint16_t subsec) : subsections(subsec), reservedBlock(RESERVE_BLOCK_BLOCKADDR), sudoMode(false)
+Manager::Manager(uint16_t subsec) : subsections(subsec), reservedBlock(RESERVE_BLOCK_BLOCKADDR), sudoMode(false), isInited(false)
 {
     for (unsigned int i = 0; i < BLOCK_COUNT; i++)
     {
@@ -145,6 +149,7 @@ Manager::State Manager::init()
     {
         return State::QSPI_ERR;
     }
+    isInited = true;
     State state;
     uint8_t buffer[4] = {0};
     setSudoMode(true);
@@ -188,8 +193,12 @@ bool Manager::PassLegalCheck(uint16_t block, uint16_t size, uint16_t &allowedSiz
     return true;
 }
 
-Manager::State Manager::WriteStatusReg(uint8_t data, RegisterAddress reg_addr) const
+Manager::State Manager::WriteStatusReg(RegisterAddress reg_addr, uint8_t data) const
 {
+    if (!isInited)
+    {
+        return State::OBJECT_NOT_INIT;
+    }
     while (isBusy())
         ;
     if (StatusReg_Tx(OPCode::WRITE_STATUS_REG, reg_addr, data) != HAL_OK)
@@ -199,8 +208,12 @@ Manager::State Manager::WriteStatusReg(uint8_t data, RegisterAddress reg_addr) c
     return State::OK;
 }
 
-Manager::State Manager::ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr) const
+Manager::State Manager::ReadStatusReg(RegisterAddress reg_addr, uint8_t *buffer) const
 {
+    if (!isInited)
+    {
+        return State::OBJECT_NOT_INIT;
+    }
     if (StatusReg_Rx(OPCode::READ_STATUS_REG, reg_addr, buffer) != HAL_OK)
     {
         return State::QSPI_ERR;
@@ -210,6 +223,10 @@ Manager::State Manager::ReadStatusReg(uint8_t *buffer, RegisterAddress reg_addr)
 
 Manager::State Manager::WriteMemory(uint16_t curBlock, uint8_t *data, uint16_t size)
 {
+    if (!isInited)
+    {
+        return State::OBJECT_NOT_INIT;
+    }
     uint32_t curAddr   = nextAddr[curBlock];
     uint16_t nextBlock = blockAddrFilter(curAddr);
 
@@ -268,6 +285,10 @@ Manager::State Manager::WriteMemory(uint16_t curBlock, uint8_t *data, uint16_t s
 
 Manager::State Manager::reWrite_WithinBlock(uint32_t address, uint8_t *data, uint16_t size)
 {
+    if (!isInited)
+    {
+        return State::OBJECT_NOT_INIT;
+    }
     if (!PassAddressCheck(address))
     {
         return State::PARAM_ERR;
@@ -330,6 +351,10 @@ bool Manager::PassAddressCheck(uint32_t address) const
 
 Manager::State Manager::ReadMemory(uint32_t address, uint8_t *buffer, uint16_t size) const
 {
+    if (!isInited)
+    {
+        return State::OBJECT_NOT_INIT;
+    }
     if (!PassAddressCheck(address))
     {
         return State::PARAM_ERR;
@@ -342,7 +367,7 @@ Manager::State Manager::ReadMemory(uint32_t address, uint8_t *buffer, uint16_t s
     while (size)
     {
         taskENTER_CRITICAL();
-        SetBuffer(true);
+        SetBufferMode(true);
         while (isBusy())
             ;
         if (BufferCommand(pageAligned_calcAddress(curBlock, curPage), OPCode::PAGE_DATA_READ) != HAL_OK)
@@ -373,6 +398,10 @@ Manager::State Manager::ReadMemory(uint32_t address, uint8_t *buffer, uint16_t s
 
 Manager::State Manager::EraseBlock(uint32_t blockNUM, bool canSaveAddr)
 {
+    if (!isInited)
+    {
+        return State::OBJECT_NOT_INIT;
+    }
     if (blockNUM >= BLOCK_COUNT || (blockNUM == reservedBlock && !sudoMode))
     {
         return State::PARAM_ERR;
@@ -404,6 +433,10 @@ Manager::State Manager::EraseBlock(uint32_t blockNUM, bool canSaveAddr)
 
 Manager::State Manager::EraseRange_WithinBlock(uint32_t startAddress, uint32_t endAddress)
 {
+    if (!isInited)
+    {
+        return State::OBJECT_NOT_INIT;
+    }
     if (startAddress >= endAddress)
     {
         return State::PARAM_ERR;
@@ -528,6 +561,10 @@ Manager::State Manager::EraseRange_WithinBlock(uint32_t startAddress, uint32_t e
 
 Manager::State Manager::EraseChip()
 {
+    if (!isInited)
+    {
+        return State::OBJECT_NOT_INIT;
+    }
     if (WriteEnable() != State::OK)
     {
         return State::QSPI_ERR;
@@ -561,6 +598,10 @@ Manager::State Manager::EraseChip()
 
 Manager::State Manager::BB_LUT(uint8_t *buffer) const
 {
+    if (!isInited)
+    {
+        return State::OBJECT_NOT_INIT;
+    }
     while (isBusy())
         ;
 
@@ -584,7 +625,7 @@ Manager::State Manager::getLast_ECC_page_failure(uint32_t &buffer) const
     }
     buffer            = info[0] << 8 | info[1];
     uint8_t ECC_Check = 0;
-    if (ReadStatusReg(&ECC_Check, RegisterAddress::STATUS_REGISTER) != State::OK)
+    if (ReadStatusReg(RegisterAddress::STATUS_REGISTER, &ECC_Check) != State::OK)
     {
         return State::QSPI_ERR;
     }
@@ -597,6 +638,10 @@ Manager::State Manager::getLast_ECC_page_failure(uint32_t &buffer) const
 
 Manager::State Manager::BB_management()
 {
+    if (!isInited)
+    {
+        return State::OBJECT_NOT_INIT;
+    }
     uint8_t data[PAGE_SIZE_BYTE];
     uint8_t buffer[PAGE_SIZE_BYTE];
     for (int a = 0; a < PAGE_SIZE_BYTE; a++)
