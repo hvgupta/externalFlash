@@ -24,7 +24,7 @@ int lastAddr = 0;
 inline uint32_t ADDR_STORE_START(uint16_t blockNUM)
 {
     uint16_t byteAddr = blockNUM * 4;
-    uint16_t pageAddr = PAGE_COUNT - 2;
+    uint16_t pageAddr = PAGE_PER_BLOCK - 2;
     if (byteAddr >= PAGE_SIZE_BYTE)
     {
         byteAddr = 0;
@@ -656,7 +656,6 @@ void Manager::setSudoMode(bool mode)
 void Manager::saveAddr()
 {
     State state;
-    setSudoMode(true);
     EraseBlock(RESERVE_BLOCK_BLOCKADDR, false);
     for (uint16_t i = 0; i < BLOCK_COUNT; i++)
     {
@@ -664,31 +663,35 @@ void Manager::saveAddr()
         {
             continue;
         }
+
+        setSudoMode(true);
         uint32_t curAddr = nextAddr[i];
         uint8_t addr[4]  = {(curAddr & 0xFF000000) >> 24, (curAddr & 0xFF0000) >> 16, (curAddr & 0xFF00) >> 8, (curAddr & 0xFF)};
-        taskENTER_CRITICAL();
         if (WriteEnable() != State::OK)
         {
-            taskEXIT_CRITICAL();
+            setSudoMode(false);
             return;
         }
 
         while (isBusy())
             ;
-        uint16_t byteAddr = byteAddrFilter(ADDR_STORE_START(i));
+        uint32_t storeAddr = ADDR_STORE_START(i);
+        uint16_t byteAddr  = byteAddrFilter(storeAddr);
         if (Command_Tx_4DataLine(OPCode::QUAD_LOAD_PROGRAM_DATA, addr, byteAddr, 4) != HAL_OK)
         {
+            setSudoMode(false);
             return;
         }
-        uint16_t blockAddr = blockAddrFilter(ADDR_STORE_START(i));
+        uint16_t pageAddr = storeAddr >> 12;
         while (isBusy())
             ;
-        if (BufferCommand(blockAddr, OPCode::PROGRAM_EXECUTE) != HAL_OK)
+        if (BufferCommand(pageAddr, OPCode::PROGRAM_EXECUTE) != HAL_OK)
         {
+            setSudoMode(false);
             return;
         }
+        setSudoMode(false);
     }
-    setSudoMode(false);
 }
 
 }  // namespace W25N01
