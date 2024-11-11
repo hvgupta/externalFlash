@@ -1,5 +1,3 @@
-# RM2024-Template-G4
+# External Flash
 
-The repository for development board G4.
-
-Provide basic led blink functions
+This is the code I wrote for accessing an external flash during my time in the Robomasters team for the 2024 season
